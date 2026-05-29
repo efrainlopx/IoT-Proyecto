@@ -1,0 +1,20 @@
+# Credenciales MQTT y respaldos
+mosquitto/config/password.txt
+mosquito/config/password.txt.*
+
+# Datos y registros generados por Mosquitto
+mosquitto/data/*
+mosquitto/log/*
+
+# Mantener carpetas vacías en Git
+!mosquitto/data/.gitkeep
+!mosquitto/log/.gitkeep
+
+#Mantener carpetas en el repositorio
+!mosquitto/data/.gitkeep
+!mosquitto/log/.gitkeep
+
+# Archivos generales
+.env
+*.log
+.DS_Store
