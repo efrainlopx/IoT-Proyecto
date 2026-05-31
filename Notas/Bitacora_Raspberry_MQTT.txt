@@ -1,0 +1,130 @@
+# Bitácora Raspberry Pi 4 + Ubuntu Server + Docker + Mosquitto
+
+## Diagnóstico de red
+
+Escaneo de la red:
+
+nmap -sn 192.168.1.0/24
+
+Tabla ARP:
+
+ip neigh
+
+Prueba de conectividad:
+
+ping 192.168.1.X
+
+Verificación de puertos:
+
+sudo nmap -p 22 192.168.1.X
+sudo nmap -sV 192.168.1.X
+
+## Problema encontrado
+
+La Raspberry estaba siendo alimentada desde un puerto USB 2.0 de una PC.
+
+Síntomas:
+
+- LED RJ45 apagado.
+- Router sin detectar enlace.
+- SSH inaccesible.
+- Arranque incompleto.
+
+Solución:
+
+- Alimentar desde USB 3.0.
+- Posteriormente usar cargador UGREEN USB-C.
+
+Después de eso:
+
+- El RJ45 encendió.
+- El router detectó enlace.
+- La Raspberry obtuvo IP.
+- SSH comenzó a responder.
+
+## Conexión SSH
+
+ssh efrain@192.168.1.127
+
+Si aparece advertencia por cambio de clave:
+
+ssh-keygen -R 192.168.1.127
+
+## Verificación del sistema
+
+hostname
+ip addr
+free -h
+uname -r
+
+## Actualización del sistema
+
+sudo apt update
+sudo apt upgrade -y
+sudo reboot
+
+## Instalación de Docker
+
+sudo apt install docker.io -y
+
+Habilitar Docker:
+
+sudo systemctl enable docker
+sudo systemctl start docker
+
+Prueba:
+
+sudo docker run hello-world
+
+## Clonar proyecto
+
+cd ~
+git clone <URL_DEL_REPOSITORIO>
+cd IoT-Proyecto
+
+## Crear contraseña MQTT
+
+docker run --rm -it \
+  -v "$PWD/mosquitto/config:/mosquitto/config" \
+  eclipse-mosquitto:2 \
+  mosquitto_passwd -c /mosquitto/config/password.txt IoTProyecto
+
+sudo chown 1883:1883 mosquitto/config/password.txt
+sudo chmod 600 mosquitto/config/password.txt
+
+## Levantar Mosquitto
+
+docker compose up -d
+
+Verificar:
+
+docker ps
+docker logs aquacontrol-mqtt
+
+## Suscriptor MQTT
+
+docker exec -it aquacontrol-mqtt mosquitto_sub \
+  -h localhost \
+  -p 1883 \
+  -t "aquacontrol/tinaco/nivel" \
+  -u IoTProyecto \
+  -P "TU_CONTRASENA" \
+  -v
+
+## Publicador MQTT
+
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -p 1883 \
+  -t "aquacontrol/tinaco/nivel" \
+  -u IoTProyecto \
+  -P "TU_CONTRASENA" \
+  -m "Prueba MQTT"
+
+Resultado esperado:
+
+aquacontrol/tinaco/nivel Prueba MQTT
+
+## Apagar correctamente
+
+sudo shutdown -h now
