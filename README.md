@@ -81,26 +81,29 @@ Después de clonar el proyecto en otra computadora o en la Raspberry Pi, se debe
 
 ```bash
 cd IoT-Proyecto.
-
+```
 ### 2. Crear el usuario MQTT
+```bash
 docker run --rm -it \
   -v "$PWD/mosquitto/config:/mosquitto/config" \
   eclipse-mosquitto:2 \
   mosquitto_passwd -c /mosquitto/config/password.txt IoTProyecto
-
+```
 El comando solicitará escribir y confirmar una contraseña para el usuario:
 
-IoTProyecto.
+IoTProyecto
 
 ### 3. Corregir permisos del archivo de contraseña
+```bash
 sudo chown 1883:1883 mosquitto/config/password.txt
 sudo chmod 600 mosquitto/config/password.txt
+```
 
-Estos permisos permiten que el contenedor de Mosquitto lea el archivo password.txt sin exponerlo innecesariamente.
+Estos permisos permiten que el contenedor de Mosquitto lea el archivo password.txt sin exponerlo innecesariamente
 
 ### 4. Levantar el broker MQTT
 docker compose up -d
-.
+
 
 ### 5. Verificar que el contenedor esté activo
 docker compose ps
@@ -108,5 +111,3 @@ docker compose ps
 El contenedor debe aparecer con estado Up:
 
 aquacontrol-mqtt   eclipse-mosquitto:2   Up   0.0.0.0:1883->1883/tcp
-.
-
