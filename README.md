@@ -80,7 +80,7 @@ Después de clonar el proyecto en otra computadora o en la Raspberry Pi, se debe
 ### 1. Entrar a la carpeta del proyecto
 
 ```bash
-cd IoT-Proyecto
+cd IoT-ProyectO
 
 ### 2. Crear el usuario MQTT
 docker run --rm -it \
@@ -91,6 +91,7 @@ docker run --rm -it \
 El comando solicitará escribir y confirmar una contraseña para el usuario:
 
 IoTProyecto
+
 ### 3. Corregir permisos del archivo de contraseña
 sudo chown 1883:1883 mosquitto/config/password.txt
 sudo chmod 600 mosquitto/config/password.txt
