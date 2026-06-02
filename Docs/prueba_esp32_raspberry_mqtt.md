@@ -16,15 +16,18 @@ Esta prueba valida dos sentidos de comunicación:
 ```text
 ESP32 → Hotspot Wi-Fi → Raspberry Pi → Mosquitto MQTT
 ESP32 ← Hotspot Wi-Fi ← Raspberry Pi ← Mosquitto MQTT
+```
 Componentes utilizados
-Raspberry Pi con Ubuntu Server 22.04.
-Docker y Docker Compose.
-Mosquitto MQTT ejecutado en contenedor Docker.
-ESP32 Dev Module.
-Arduino IDE.
-Librería PubSubClient.
-Hotspot Wi-Fi del celular.
+* Raspberry Pi con Ubuntu Server 22.04.
+* Docker y Docker Compose.
+* Mosquitto MQTT ejecutado en contenedor Docker.
+* ESP32 Dev Module.
+* Arduino IDE.
+* Librería PubSubClient.
+* Hotspot Wi-Fi del celular.
+
 Estructura recomendada del proyecto
+```text
 IoT-Proyecto/
 ├── README.md
 ├── compose.yaml
@@ -40,103 +43,109 @@ IoT-Proyecto/
 │       └── prueba_mqtt_esp32.ino
 └── docs/
     └── prueba_esp32_raspberry_mqtt.md
-1. Conectar Raspberry Pi y ESP32 a la misma red
+```
+### 1. Conectar Raspberry Pi y ESP32 a la misma red
 
 Para esta prueba se utilizó el hotspot del celular.
 
 La arquitectura queda así:
-
+```text
 Hotspot del celular
 ├── Raspberry Pi
 │   └── Mosquitto MQTT
 └── ESP32
     └── Cliente MQTT
+```
 
 Es importante que ambos dispositivos estén conectados a la misma red Wi-Fi.
 
-2. Verificar la IP de la Raspberry Pi
+### 2. Verificar la IP de la Raspberry Pi
 
 En la Raspberry Pi se ejecuta:
-
+```bash
 hostname -I
-
+```
 Ejemplo de salida:
-
+```text
 10.152.254.168
-
+```
 En este caso, la IP de la Raspberry Pi es:
-
+```etxt
 10.152.254.168
-
+```
 Esta IP debe colocarse en el código de la ESP32:
-
+```bash
 const char* mqtt_server = "10.152.254.168";
-
+```
 Si se cambia de red, por ejemplo del módem de casa al hotspot del celular, la IP puede cambiar. En ese caso se debe volver a ejecutar:
-
+```bash
 hostname -I
-3. Verificar que Mosquitto esté activo
+```
+### 3. Verificar que Mosquitto esté activo
 
 En la Raspberry Pi, entrar a la carpeta del proyecto:
-
+```bash
 cd ~/IoT-Proyecto
-
+```
 Verificar los contenedores activos:
-
+```bash
 docker ps
-
+```
 Resultado esperado:
-
+```text
 CONTAINER ID   IMAGE                 STATUS          PORTS                                         NAMES
 xxxxxxxxxxxx   eclipse-mosquitto:2   Up              0.0.0.0:1883->1883/tcp, [::]:1883->1883/tcp   aquacontrol-mqtt
-
+```
 El contenedor importante es:
-
+```text
 aquacontrol-mqtt
-
+```
 El puerto importante es:
-
+```text
 1883
-4. Escuchar mensajes MQTT desde la Raspberry Pi
+```
+### 4. Escuchar mensajes MQTT desde la Raspberry Pi
 
 En la Raspberry Pi, ejecutar:
-
+```bash
 docker exec -it aquacontrol-mqtt mosquitto_sub \
   -h localhost \
   -p 1883 \
   -u IoTProyecto \
   -P "CONTRASEÑA_MQTT" \
   -t "tinaco/#"
-
+```
 Este comando deja a la Raspberry escuchando todos los mensajes publicados en tópicos que empiecen con:
-
+```text
 tinaco/
-
+```
 Por ejemplo:
-
+```text
 tinaco/estado
 tinaco/nivel
 tinaco/comando
 tinaco/bomba
-5. Configurar la ESP32 en Arduino IDE
+```
+### 5. Configurar la ESP32 en Arduino IDE
 
 En Arduino IDE seleccionar:
-
+```text
 Board: ESP32 Dev Module
 Port: /dev/ttyUSB0
 Monitor Serial: 115200 baud
-
+```
 También se debe instalar la librería:
-
+```text
 PubSubClient
-
+```
 Ruta en Arduino IDE:
-
+```text
 Sketch → Include Library → Manage Libraries → PubSubClient → Install
-6. Código de prueba para la ESP32
+```
+### 6. Código de prueba para la ESP32
 
 El código de la ESP32 debe incluir:
-
+```bash
 #include <WiFi.h>
 #include <PubSubClient.h>
 
@@ -148,38 +157,39 @@ const int mqtt_port = 1883;
 
 const char* mqtt_user = "IoTProyecto";
 const char* mqtt_password = "CONTRASEÑA_MQTT";
-
+```
 La ESP32 publica mensajes en:
-
+```text
 tinaco/estado
 tinaco/nivel
-
+```
 Y recibe comandos desde:
-
+```text
 tinaco/comando
-7. Resultado esperado al cargar el código en la ESP32
+```
+### 7. Resultado esperado al cargar el código en la ESP32
 
 En el Monitor Serial de Arduino IDE debe aparecer algo similar a:
-
+```text
 Conectando al WiFi...
 WiFi conectado correctamente
 IP de la ESP32: 10.152.254.xxx
 Conectando a MQTT... conectado
 Publicado en tinaco/nivel: 75
-
+```
 En la terminal de la Raspberry Pi donde se ejecutó mosquitto_sub, debe aparecer:
-
+```text
 ESP32 conectada al broker MQTT
 75
 75
 75
-
+```
 Esto confirma que la ESP32 puede publicar mensajes hacia la Raspberry Pi.
 
-8. Enviar comandos desde Raspberry Pi hacia ESP32
+### 8. Enviar comandos desde Raspberry Pi hacia ESP32
 
 Desde otra terminal en la Raspberry Pi, enviar comando de encendido:
-
+```bash
 docker exec -it aquacontrol-mqtt mosquitto_pub \
   -h localhost \
   -p 1883 \
@@ -187,9 +197,9 @@ docker exec -it aquacontrol-mqtt mosquitto_pub \
   -P "CONTRASEÑA_MQTT" \
   -t "tinaco/comando" \
   -m "ON"
-
+```
 Enviar comando de apagado:
-
+```bash
 docker exec -it aquacontrol-mqtt mosquitto_pub \
   -h localhost \
   -p 1883 \
@@ -197,40 +207,43 @@ docker exec -it aquacontrol-mqtt mosquitto_pub \
   -P "CONTRASEÑA_MQTT" \
   -t "tinaco/comando" \
   -m "OFF"
+```
 9. Resultado esperado en el Monitor Serial de la ESP32
 
 Al enviar el comando ON, debe aparecer:
-
+```text
 Mensaje recibido en topic: tinaco/comando
 Contenido: ON
 Comando recibido: Encender bomba
-
+```
 Al enviar el comando OFF, debe aparecer:
-
+```text
 Mensaje recibido en topic: tinaco/comando
 Contenido: OFF
 Comando recibido: Apagar bomba
-
+```
 Esto confirma que la Raspberry Pi también puede enviar comandos hacia la ESP32.
 
-10. Tópicos MQTT utilizados
-Tópico	Función
-tinaco/estado	Estado general de la ESP32
-tinaco/nivel	Nivel simulado o calculado del tinaco
-tinaco/comando	Comando enviado desde Raspberry hacia ESP32
-tinaco/bomba	Estado de la bomba o actuador
-11. Comprobación final
+### 10. Tópicos MQTT utilizados
+| Tópico | Función |
+| :--- | :--- |
+| `tinaco/estado` | Estado general de la ESP32 |
+| `tinaco/nivel` | Nivel simulado o calculado del tinaco |
+| `tinaco/comando` | Comando enviado desde Raspberry hacia ESP32 |
+| `tinaco/bomba` | Estado de la bomba o actuador |
+
+### 11. Comprobación final
 
 La prueba se considera correcta si se cumplen estas condiciones:
 
-La Raspberry Pi está conectada al hotspot.
-La ESP32 está conectada al mismo hotspot.
-Mosquitto está activo en Docker.
-La ESP32 publica mensajes en tinaco/nivel.
-La Raspberry Pi recibe esos mensajes con mosquitto_sub.
-La Raspberry Pi envía comandos ON y OFF.
-La ESP32 recibe esos comandos en el Monitor Serial.
-Conclusión
+* La Raspberry Pi está conectada al hotspot.
+* La ESP32 está conectada al mismo hotspot.
+* Mosquitto está activo en Docker.
+* La ESP32 publica mensajes en tinaco/nivel.
+* La Raspberry Pi recibe esos mensajes con mosquitto_sub.
+* La Raspberry Pi envía comandos ON y OFF.
+* La ESP32 recibe esos comandos en el Monitor Serial.
+## Conclusión
 
 La conexión ESP32 ↔ Raspberry Pi mediante MQTT funciona correctamente.
 
