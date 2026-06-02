@@ -102,8 +102,9 @@ sudo chmod 600 mosquitto/config/password.txt
 Estos permisos permiten que el contenedor de Mosquitto lea el archivo password.txt sin exponerlo innecesariamente
 
 ### 4. Levantar el broker MQTT
+```bash
 docker compose up -d
-
+```
 
 ### 5. Verificar que el contenedor esté activo
 docker compose ps
