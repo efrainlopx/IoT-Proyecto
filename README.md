@@ -107,8 +107,119 @@ docker compose up -d
 ```
 
 ### 5. Verificar que el contenedor esté activo
+```bash
 docker compose ps
+```
 
 El contenedor debe aparecer con estado Up:
 
+```text
 aquacontrol-mqtt   eclipse-mosquitto:2   Up   0.0.0.0:1883->1883/tcp
+```
+
+## Avances de pruebas realizadas
+
+### 1. Prueba ESP32 con Raspberry Pi mediante MQTT
+
+Primero se realizo una prueba de comunicacion entre la ESP32 y la Raspberry Pi usando Mosquitto como broker MQTT.
+
+En esta prueba:
+
+- La Raspberry Pi ejecuto Mosquitto dentro del contenedor Docker `aquacontrol-mqtt`.
+- La ESP32 se conecto al mismo hotspot Wi-Fi que la Raspberry Pi.
+- La ESP32 publico mensajes hacia la Raspberry mediante MQTT.
+- La Raspberry pudo recibir los mensajes publicados por la ESP32.
+- Tambien se probaron comandos enviados desde Raspberry hacia la ESP32 usando el topico `tinaco/comando`.
+
+Los topicos principales usados en esta etapa fueron:
+
+| Topico | Funcion |
+| :--- | :--- |
+| `tinaco/estado` | Estado de conexion de la ESP32 |
+| `tinaco/nivel` | Nivel simulado publicado por la ESP32 |
+| `tinaco/comando` | Comandos `ON` y `OFF` enviados hacia la ESP32 |
+
+La documentacion completa de esta prueba esta en:
+
+```text
+Docs/prueba_esp32_raspberry_mqtt.md
+```
+
+El codigo usado para esta prueba esta en:
+
+```text
+ESP32/prueba_mqtt_esp32/prueba_mqtt_esp32.ino
+```
+
+### 2. Prueba ESP32 con sensor ultrasonico
+
+Despues se hizo una prueba local usando solo la ESP32 y el sensor ultrasonico.
+
+En esta etapa no se uso MQTT. El objetivo fue comprobar primero que el sensor estuviera bien conectado y que la ESP32 pudiera leer la distancia correctamente.
+
+La prueba mostro las mediciones en el Monitor Serial del Arduino IDE a `115200` baudios.
+
+Se valido un rango aproximado de:
+
+```text
+2.5 cm a 30 cm
+```
+
+Esta prueba fue exitosa porque el Monitor Serial mostro las lecturas reales en centimetros.
+
+### 3. Integracion ESP32 + sensor ultrasonico + MQTT
+
+Una vez confirmado que el sensor funcionaba correctamente, se integro con la comunicacion MQTT.
+
+En esta version:
+
+- La ESP32 mide distancia con el sensor ultrasonico.
+- Calcula el nivel del tinaco simulado en porcentaje.
+- Publica la distancia y el nivel hacia Mosquitto en la Raspberry Pi.
+- Sigue escuchando comandos `ON` y `OFF` desde `tinaco/comando`.
+
+El calculo del nivel usa dos medidas base:
+
+```text
+distanciaVacio = 30 cm
+distanciaLleno = 5 cm
+```
+
+Formula usada:
+
+```text
+nivel = ((distanciaVacio - distanciaActual) / (distanciaVacio - distanciaLleno)) * 100
+```
+
+Los topicos MQTT usados en la integracion son:
+
+| Topico | Funcion |
+| :--- | :--- |
+| `tinaco/distancia` | Distancia medida por el sensor, en cm |
+| `tinaco/nivel` | Nivel calculado del tinaco, en porcentaje |
+| `tinaco/estado` | Estado de conexion o del sensor |
+| `tinaco/comando` | Comandos enviados hacia la ESP32 |
+
+Para escuchar los datos desde la Raspberry Pi se uso:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_sub \
+  -h localhost \
+  -p 1883 \
+  -u IoTProyecto \
+  -P "CONTRASEÑA_MOSQUITTO" \
+  -t "tinaco/#" \
+  -v
+```
+
+La documentacion completa de esta etapa esta en:
+
+```text
+Docs/prueba_esp32_ultrasonico_mqtt.md
+```
+
+El codigo usado para la prueba del sensor y la integracion MQTT esta en:
+
+```text
+ESP32/ESP32_Prueba_Sensor_Ultrasonico/Sensor_Ultrasonico_ESP32/Sensor_Ultrasonico_ESP32.ino
+```
