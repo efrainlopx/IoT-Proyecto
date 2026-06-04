@@ -175,8 +175,10 @@ En esta version:
 
 - La ESP32 mide distancia con el sensor ultrasonico.
 - Calcula el nivel del tinaco simulado en porcentaje.
+- Ajusta el brillo de un LED en `GPIO26` mediante PWM segun la distancia medida.
 - Publica la distancia y el nivel hacia Mosquitto en la Raspberry Pi.
 - Sigue escuchando comandos `ON` y `OFF` desde `tinaco/comando`.
+- Reduce los mensajes del Monitor Serial cuando el tinaco esta lleno y el LED esta apagado.
 
 El calculo del nivel usa dos medidas base:
 
@@ -197,8 +199,21 @@ Los topicos MQTT usados en la integracion son:
 | :--- | :--- |
 | `tinaco/distancia` | Distancia medida por el sensor, en cm |
 | `tinaco/nivel` | Nivel calculado del tinaco, en porcentaje |
-| `tinaco/estado` | Estado de conexion o del sensor |
+| `tinaco/estado` | Estado de conexion, sensor o LED |
 | `tinaco/comando` | Comandos enviados hacia la ESP32 |
+
+El LED en `GPIO26` funciona como indicador visual:
+
+- Con distancia de lleno, el LED se apaga.
+- Al aumentar la distancia, el brillo sube gradualmente.
+- Con distancia de vacio, el LED llega a brillo maximo.
+
+Los comandos MQTT tienen esta funcion:
+
+| Comando | Funcion |
+| :--- | :--- |
+| `ON` | Activa el control automatico del LED por PWM |
+| `OFF` | Apaga el LED y desactiva el control automatico |
 
 Para escuchar los datos desde la Raspberry Pi se uso:
 

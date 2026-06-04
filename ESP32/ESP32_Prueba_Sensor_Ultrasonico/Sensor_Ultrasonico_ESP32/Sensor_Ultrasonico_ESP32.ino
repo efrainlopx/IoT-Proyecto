@@ -21,6 +21,7 @@ const char* mqtt_password = "HOLA";
 // ==========================
 const int PIN_TRIG = 5;
 const int PIN_ECHO = 18;
+const int PIN_LED = 26;
 
 // ==========================
 // MEDIDAS DEL TINACO SIMULADO
@@ -31,6 +32,10 @@ const float distanciaMinSensor = 2.5;
 const float distanciaMaxSensor = 30.0;
 const unsigned long timeoutUltrasonicoUs = 30000;
 const unsigned long intervaloPublicacionMs = 3000;
+const unsigned long intervaloSerialLlenoMs = 60000;
+const int frecuenciaPwmLed = 5000;
+const int resolucionPwmLed = 8;
+const int brilloLedMaximo = 255;
 
 // ==========================
 // TOPICS MQTT
@@ -44,6 +49,10 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long ultimoEnvio = 0;
+unsigned long ultimoReporteSerial = 0;
+bool controlLedPorSensorActivo = true;
+bool ultimoEstadoLlenoConLedApagado = false;
+int brilloLedActual = 0;
 
 float medirDistanciaCm() {
   digitalWrite(PIN_TRIG, LOW);
@@ -96,6 +105,47 @@ float calcularNivelPorcentaje(float distanciaActual) {
   return nivel;
 }
 
+int calcularBrilloLed(float distanciaActual) {
+  if (distanciaActual <= distanciaLleno) {
+    return 0;
+  }
+
+  if (distanciaActual >= distanciaVacio) {
+    return brilloLedMaximo;
+  }
+
+  float proporcion = (distanciaActual - distanciaLleno) / (distanciaVacio - distanciaLleno);
+  return (int)(proporcion * brilloLedMaximo + 0.5);
+}
+
+void aplicarBrilloLed(int brillo) {
+  brilloLedActual = brillo;
+  analogWrite(PIN_LED, brilloLedActual);
+}
+
+bool debeReportarSerial(bool tinacoLlenoConLedApagado) {
+  unsigned long ahora = millis();
+
+  if (!tinacoLlenoConLedApagado) {
+    ultimoEstadoLlenoConLedApagado = false;
+    ultimoReporteSerial = ahora;
+    return true;
+  }
+
+  if (!ultimoEstadoLlenoConLedApagado) {
+    ultimoEstadoLlenoConLedApagado = true;
+    ultimoReporteSerial = ahora;
+    return true;
+  }
+
+  if (ultimoReporteSerial == 0 || ahora - ultimoReporteSerial >= intervaloSerialLlenoMs) {
+    ultimoReporteSerial = ahora;
+    return true;
+  }
+
+  return false;
+}
+
 void conectarWiFi() {
   Serial.println();
   Serial.print("Conectando al WiFi: ");
@@ -132,11 +182,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == topic_comando) {
     if (mensaje == "ON") {
-      Serial.println("Comando recibido: Encender bomba");
-      // Aqui despues puedes activar un relevador o motor.
+      controlLedPorSensorActivo = true;
+      Serial.println("Comando recibido: Activar PWM automatico del LED en GPIO26");
+      client.publish(topic_estado, "led_pwm_auto_on");
     } else if (mensaje == "OFF") {
-      Serial.println("Comando recibido: Apagar bomba");
-      // Aqui despues puedes apagar el relevador o motor.
+      controlLedPorSensorActivo = false;
+      aplicarBrilloLed(0);
+      Serial.println("Comando recibido: Apagar LED en GPIO26");
+      client.publish(topic_estado, "led_off");
     } else {
       Serial.println("Comando no reconocido");
     }
@@ -187,6 +240,8 @@ void publicarLecturas() {
   }
 
   float nivel = calcularNivelPorcentaje(distancia);
+  int brilloCalculado = controlLedPorSensorActivo ? calcularBrilloLed(distancia) : 0;
+  aplicarBrilloLed(brilloCalculado);
 
   String mensajeDistancia = String(distancia, 2);
   String mensajeNivel = String(nivel, 1);
@@ -194,11 +249,19 @@ void publicarLecturas() {
   client.publish(topic_distancia, mensajeDistancia.c_str());
   client.publish(topic_nivel, mensajeNivel.c_str());
 
+  bool tinacoLlenoConLedApagado = distancia <= distanciaLleno && brilloLedActual == 0;
+
+  if (!debeReportarSerial(tinacoLlenoConLedApagado)) {
+    return;
+  }
+
   Serial.print("Distancia: ");
   Serial.print(mensajeDistancia);
   Serial.print(" cm | Nivel: ");
   Serial.print(mensajeNivel);
-  Serial.print(" % | Estado sensor: ");
+  Serial.print(" % | Brillo LED: ");
+  Serial.print(brilloLedActual);
+  Serial.print("/255 | Estado sensor: ");
 
   if (distancia < distanciaMinSensor) {
     Serial.println("fuera de rango, demasiado cerca");
@@ -220,10 +283,16 @@ void setup() {
 
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
+  pinMode(PIN_LED, OUTPUT);
+  analogWriteResolution(PIN_LED, resolucionPwmLed);
+  analogWriteFrequency(PIN_LED, frecuenciaPwmLed);
+
   digitalWrite(PIN_TRIG, LOW);
+  aplicarBrilloLed(0);
 
   Serial.println("ESP32 + Sensor ultrasonico + MQTT");
   Serial.println("---------------------------------");
+  Serial.println("PWM del LED configurado en GPIO26");
   Serial.print("Distancia vacio: ");
   Serial.print(distanciaVacio);
   Serial.println(" cm");
