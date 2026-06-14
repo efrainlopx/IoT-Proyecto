@@ -241,6 +241,29 @@ const unsigned long duracionPulsoArranqueMotorMs = 300;
 
 Se agrego un pulso de arranque para que el motor pueda comenzar a girar aunque el PWM calculado sea bajo. Si el motor esta apagado y debe arrancar con poca potencia, primero recibe un pulso de `140/255` durante `300 ms` y despues baja al PWM calculado.
 
+Modulos de seguridad agregados:
+
+| Condicion | Accion de seguridad |
+| :--- | :--- |
+| Sensor sin lectura | Apaga el motor y publica estado de modo seguro |
+| Distancia fuera de rango | Apaga el motor y evita usar esa lectura para controlar el motor |
+| Perdida de Wi-Fi | Apaga el motor mientras intenta reconectar |
+| Perdida de MQTT | Apaga el motor mientras intenta reconectar al broker |
+| Nivel `>= 100%` | Mantiene el motor apagado |
+| Nivel `<= 20%` | Usa PWM alto/maximo cuando el modo automatico esta activo |
+
+Los estados de seguridad se publican en `tinaco/estado` cuando la conexion MQTT esta disponible. En el codigo se usa una funcion de modo seguro para apagar el motor y desactivar el control automatico:
+
+```cpp
+activarModoSeguro("motivo");
+```
+
+El umbral configurado para activar potencia alta por nivel bajo es:
+
+```cpp
+const float nivelMinimoMotorAlto = 20.0;
+```
+
 Para escuchar los datos desde la Raspberry Pi se uso:
 
 ```bash
