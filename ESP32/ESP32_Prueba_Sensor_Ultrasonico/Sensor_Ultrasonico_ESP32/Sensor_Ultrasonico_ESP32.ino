@@ -31,6 +31,7 @@ const float distanciaVacio = 30.0;
 const float distanciaLleno = 5.0;
 const float distanciaMinSensor = 2.5;
 const float distanciaMaxSensor = 30.0;
+const float nivelMinimoMotorAlto = 20.0;
 const unsigned long timeoutUltrasonicoUs = 30000;
 const unsigned long intervaloPublicacionMs = 3000;
 const unsigned long intervaloSerialLlenoMs = 60000;
@@ -58,6 +59,7 @@ PubSubClient client(espClient);
 unsigned long ultimoEnvio = 0;
 unsigned long ultimoReporteSerial = 0;
 bool ultimoEstadoLlenoConLedApagado = false;
+bool modoSeguroActivo = false;
 int brilloLedActual = 0;
 bool controlMotorPorSensorActivo = false;
 int potenciaMotorActual = 0;
@@ -149,6 +151,19 @@ void aplicarPotenciaMotor(int potencia) {
   analogWrite(PIN_MOTOR, potenciaMotorActual);
 }
 
+void activarModoSeguro(const char* motivo) {
+  controlMotorPorSensorActivo = false;
+  aplicarPotenciaMotor(0);
+  modoSeguroActivo = true;
+
+  Serial.print("Modo seguro activo: ");
+  Serial.println(motivo);
+
+  if (client.connected()) {
+    client.publish(topic_estado, motivo);
+  }
+}
+
 void aplicarPotenciaMotorConArranque(int potenciaObjetivo) {
   if (potenciaObjetivo <= 0) {
     aplicarPotenciaMotor(0);
@@ -197,6 +212,8 @@ void conectarWiFi() {
   Serial.print("Conectando al WiFi: ");
   Serial.println(ssid);
 
+  activarModoSeguro("modo_seguro_wifi_desconectado");
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -229,10 +246,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (String(topic) == topic_comando) {
     if (mensaje == "ON") {
       controlMotorPorSensorActivo = true;
+      modoSeguroActivo = false;
       Serial.println("Comando recibido: Activar PWM automatico del motor en GPIO27");
       client.publish(topic_estado, "motor_pwm_auto_on");
     } else if (mensaje == "OFF") {
       controlMotorPorSensorActivo = false;
+      modoSeguroActivo = false;
       aplicarPotenciaMotor(0);
       Serial.println("Comando recibido: Apagar motor en GPIO27");
       client.publish(topic_estado, "motor_off");
@@ -244,6 +263,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void conectarMQTT() {
   while (!client.connected()) {
+    activarModoSeguro("modo_seguro_mqtt_desconectado");
     Serial.print("Conectando a MQTT... ");
 
     String clientId = "ESP32_Tinaco_";
@@ -280,13 +300,40 @@ void publicarLecturas() {
 
   if (distancia < 0) {
     Serial.println("Sin lectura: revisa cableado, alimentacion o posicion del sensor");
-    client.publish(topic_estado, "sin_lectura_sensor");
+    activarModoSeguro("modo_seguro_sensor_sin_lectura");
+    client.publish(topic_distancia, "error");
     return;
   }
 
   float nivel = calcularNivelPorcentaje(distancia);
   int brilloCalculado = calcularBrilloLed(distancia);
-  int potenciaMotorCalculada = controlMotorPorSensorActivo ? calcularPotenciaMotor(distancia) : 0;
+  bool distanciaFueraDeRango = distancia < distanciaMinSensor || distancia > distanciaMaxSensor;
+
+  if (distanciaFueraDeRango) {
+    aplicarBrilloLed(brilloCalculado);
+    activarModoSeguro("modo_seguro_distancia_fuera_de_rango");
+
+    String mensajeDistancia = String(distancia, 2);
+    String mensajeNivel = String(nivel, 1);
+
+    client.publish(topic_distancia, mensajeDistancia.c_str());
+    client.publish(topic_nivel, mensajeNivel.c_str());
+
+    Serial.print("Distancia fuera de rango: ");
+    Serial.print(distancia, 2);
+    Serial.println(" cm | Motor apagado por seguridad");
+    return;
+  }
+
+  int potenciaMotorCalculada = 0;
+
+  if (controlMotorPorSensorActivo) {
+    if (nivel <= nivelMinimoMotorAlto) {
+      potenciaMotorCalculada = potenciaMotorMaxima;
+    } else {
+      potenciaMotorCalculada = calcularPotenciaMotor(distancia);
+    }
+  }
 
   aplicarBrilloLed(brilloCalculado);
   aplicarPotenciaMotorConArranque(potenciaMotorCalculada);
@@ -367,10 +414,12 @@ void setup() {
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
+    activarModoSeguro("modo_seguro_wifi_desconectado");
     conectarWiFi();
   }
 
   if (!client.connected()) {
+    activarModoSeguro("modo_seguro_mqtt_desconectado");
     conectarMQTT();
   }
 
