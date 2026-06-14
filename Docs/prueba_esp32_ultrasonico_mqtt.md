@@ -11,7 +11,7 @@ Despues, como el sensor ya funcionaba correctamente, se integro con la prueba MQ
 El resultado final es:
 
 ```text
-ESP32 mide distancia -> calcula nivel -> ajusta LED por PWM -> publica datos por MQTT a Raspberry Pi
+ESP32 mide distancia -> calcula nivel -> ajusta LED y motor por PWM -> publica datos por MQTT a Raspberry Pi
 ```
 
 ## Arquitectura de prueba
@@ -34,6 +34,8 @@ Esta primera prueba sirvio para comprobar que:
 ```text
 Sensor ultrasonico -> ESP32 -> LED GPIO26
                          |
+                         +-> Motor GPIO27 + TIP120
+                         |
                          v
                     Hotspot Wi-Fi -> Raspberry Pi -> Mosquitto MQTT
 ```
@@ -44,6 +46,9 @@ Componentes utilizados:
 - Sensor ultrasonico.
 - Raspberry Pi con Mosquitto en Docker.
 - LED conectado al GPIO26.
+- Motor conectado mediante TIP120 en el GPIO27.
+- Fuente externa de 5V para el motor.
+- Diodo de proteccion para el motor.
 - Arduino IDE.
 - Libreria PubSubClient.
 - Hotspot Wi-Fi de celular.
@@ -72,7 +77,8 @@ Despues se modifico el sketch para incluir tambien:
 - Calculo del nivel del tinaco en porcentaje.
 - Publicacion de distancia y nivel por MQTT.
 - Control de brillo del LED por PWM en el GPIO26.
-- Recepcion de comandos `ON` y `OFF` desde MQTT para activar o desactivar el control automatico del LED.
+- Control del motor por PWM en el GPIO27.
+- Recepcion de comandos `ON` y `OFF` desde MQTT para activar o apagar el modo automatico del motor.
 
 ## Pines del sensor ultrasonico
 
@@ -119,6 +125,63 @@ brillo = ((distanciaActual - distanciaLleno) / (distanciaVacio - distanciaLleno)
 ```
 
 Tambien se ajusto el Monitor Serial para que, cuando el sensor marque lleno y el LED este apagado, no imprima mensajes tan seguido. En ese estado reporta una vez al detectar lleno y despues aproximadamente una vez por minuto.
+
+## Modulo del motor en GPIO27
+
+Se agrego el modulo del motor usando un transistor TIP120 como etapa de potencia. El GPIO27 de la ESP32 no alimenta directamente el motor; solo controla la base del TIP120.
+
+Conexiones realizadas:
+
+```text
+ESP32 GPIO27 -> resistencia 470 ohms -> Base TIP120
+
+TIP120:
+Base      <- resistencia desde GPIO27
+Colector  <- negativo del motor
+Emisor    -> GND
+
+Motor:
+Positivo  -> +5V externo
+Negativo  -> Colector TIP120
+
+Diodo de proteccion:
+Catodo    -> +5V
+Anodo     -> Colector TIP120
+
+GND:
+GND fuente 5V externa -> GND ESP32
+```
+
+Datos principales del codigo:
+
+```cpp
+const int PIN_MOTOR = 27;
+const int frecuenciaPwmMotor = 5000;
+const int resolucionPwmMotor = 8;
+const int potenciaMotorMaxima = 255;
+const int potenciaMotorMinimaGiro = 45;
+const int potenciaMotorArranque = 140;
+const unsigned long duracionPulsoArranqueMotorMs = 300;
+```
+
+El motor tambien funciona con PWM:
+
+- Con distancia de lleno, el motor queda apagado.
+- Conforme la distancia aumenta, la potencia del motor sube de forma proporcional.
+- Con distancia de vacio, el motor llega a potencia maxima.
+- El comando `ON` activa el modo automatico del motor por sensor.
+- El comando `OFF` apaga el motor y desactiva el modo automatico.
+
+Como el motor no arrancaba con PWM bajo, se agrego un pulso de arranque:
+
+```text
+Si el motor esta apagado y el PWM calculado es bajo:
+1. Se aplica un pulso de arranque de 140/255 durante 300 ms.
+2. Despues baja al PWM calculado.
+3. Si el PWM calculado es menor a 45, se usa 45 como minimo de giro.
+```
+
+Esto permite que el motor empiece a moverse sin esperar a que el PWM calculado llegue aproximadamente a 100.
 
 ## Primera prueba: solo ESP32 y sensor ultrasonico
 
@@ -174,7 +237,7 @@ El codigo limita el resultado entre `0%` y `100%` para evitar valores fuera de r
 | :--- | :--- |
 | `tinaco/distancia` | Distancia medida por el sensor, en cm |
 | `tinaco/nivel` | Nivel calculado del tinaco, en porcentaje |
-| `tinaco/estado` | Estado de conexion, sensor o LED |
+| `tinaco/estado` | Estado de conexion, sensor, LED o motor |
 | `tinaco/comando` | Comandos `ON` y `OFF` enviados hacia la ESP32 |
 
 ## Recepcion de datos en la Raspberry Pi
@@ -207,7 +270,7 @@ tinaco/nivel 79.3
 
 ## Envio de comandos desde Raspberry Pi
 
-Para activar el control automatico del LED por PWM:
+Para activar el control automatico del motor por PWM:
 
 ```bash
 docker exec -it aquacontrol-mqtt mosquitto_pub \
@@ -219,7 +282,7 @@ docker exec -it aquacontrol-mqtt mosquitto_pub \
   -m "ON"
 ```
 
-Para apagar el LED y desactivar el control automatico por sensor:
+Para apagar el motor y desactivar el control automatico por sensor:
 
 ```bash
 docker exec -it aquacontrol-mqtt mosquitto_pub \
@@ -231,7 +294,19 @@ docker exec -it aquacontrol-mqtt mosquitto_pub \
   -m "OFF"
 ```
 
-Con `OFF`, el LED queda apagado aunque el sensor detecte la distancia de vacio. Para que vuelva a cambiar su brillo segun la distancia, se debe enviar `ON`.
+Comando de apagado usado durante la prueba con la contrasena configurada:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -p 1883 \
+  -u IoTProyecto \
+  -P "HOLA" \
+  -t "tinaco/comando" \
+  -m "OFF"
+```
+
+Con `OFF`, el motor queda apagado aunque el sensor detecte la distancia de vacio. Para que vuelva a cambiar su potencia segun la distancia, se debe enviar `ON`.
 
 ## Resultado esperado en Arduino IDE
 
@@ -247,7 +322,7 @@ WiFi conectado correctamente
 IP de la ESP32: 10.152.254.xxx
 Conectando a MQTT... conectado
 Suscrito a: tinaco/comando
-Distancia: 10.24 cm | Nivel: 79.0 % | Brillo LED: 53/255 | Estado sensor: dentro del rango
+Distancia: 10.24 cm | Nivel: 79.0 % | Brillo LED: 53/255 | Motor PWM: 53/255 | Motor auto: ON | Estado sensor: dentro del rango
 Publicado en tinaco/distancia y tinaco/nivel
 ```
 
@@ -256,13 +331,13 @@ Al recibir comandos desde MQTT:
 ```text
 Mensaje recibido en topic: tinaco/comando
 Contenido: ON
-Comando recibido: Activar PWM automatico del LED en GPIO26
+Comando recibido: Activar PWM automatico del motor en GPIO27
 ```
 
 ```text
 Mensaje recibido en topic: tinaco/comando
 Contenido: OFF
-Comando recibido: Apagar LED en GPIO26
+Comando recibido: Apagar motor en GPIO27
 ```
 
 ## Comprobacion final
@@ -275,5 +350,6 @@ La prueba se considera correcta si:
 - La Raspberry recibe datos en `tinaco/distancia` y `tinaco/nivel`.
 - La ESP32 recibe comandos publicados en `tinaco/comando`.
 - El LED en GPIO26 cambia de brillo segun la distancia medida.
-- El comando `OFF` apaga el LED aunque el sensor detecte distancia de vacio.
-- El comando `ON` reactiva el control automatico del LED por PWM.
+- El motor en GPIO27 cambia su potencia por PWM cuando el modo automatico esta activo.
+- El comando `OFF` apaga el motor aunque el sensor detecte distancia de vacio.
+- El comando `ON` reactiva el control automatico del motor por PWM.

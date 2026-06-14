@@ -11,7 +11,7 @@ const char* password = "holahola";
 // DATOS DEL BROKER MQTT
 // Raspberry Pi en hotspot
 // ==========================
-const char* mqtt_server = "10.152.254.168";
+const char* mqtt_server = "10.71.193.168";
 const int mqtt_port = 1883;
 const char* mqtt_user = "IoTProyecto";
 const char* mqtt_password = "HOLA";
@@ -37,6 +37,12 @@ const unsigned long intervaloSerialLlenoMs = 60000;
 const int frecuenciaPwmLed = 5000;
 const int resolucionPwmLed = 8;
 const int brilloLedMaximo = 255;
+const int frecuenciaPwmMotor = 5000;
+const int resolucionPwmMotor = 8;
+const int potenciaMotorMaxima = 255;
+const int potenciaMotorMinimaGiro = 45;
+const int potenciaMotorArranque = 140;
+const unsigned long duracionPulsoArranqueMotorMs = 300;
 
 // ==========================
 // TOPICS MQTT
@@ -53,7 +59,8 @@ unsigned long ultimoEnvio = 0;
 unsigned long ultimoReporteSerial = 0;
 bool ultimoEstadoLlenoConLedApagado = false;
 int brilloLedActual = 0;
-bool motorEncendido = false;
+bool controlMotorPorSensorActivo = false;
+int potenciaMotorActual = 0;
 
 float medirDistanciaCm() {
   digitalWrite(PIN_TRIG, LOW);
@@ -119,9 +126,47 @@ int calcularBrilloLed(float distanciaActual) {
   return (int)(proporcion * brilloLedMaximo + 0.5);
 }
 
+int calcularPotenciaMotor(float distanciaActual) {
+  if (distanciaActual <= distanciaLleno) {
+    return 0;
+  }
+
+  if (distanciaActual >= distanciaVacio) {
+    return potenciaMotorMaxima;
+  }
+
+  float proporcion = (distanciaActual - distanciaLleno) / (distanciaVacio - distanciaLleno);
+  return (int)(proporcion * potenciaMotorMaxima + 0.5);
+}
+
 void aplicarBrilloLed(int brillo) {
   brilloLedActual = brillo;
   analogWrite(PIN_LED, brilloLedActual);
+}
+
+void aplicarPotenciaMotor(int potencia) {
+  potenciaMotorActual = potencia;
+  analogWrite(PIN_MOTOR, potenciaMotorActual);
+}
+
+void aplicarPotenciaMotorConArranque(int potenciaObjetivo) {
+  if (potenciaObjetivo <= 0) {
+    aplicarPotenciaMotor(0);
+    return;
+  }
+
+  int potenciaAjustada = potenciaObjetivo;
+
+  if (potenciaAjustada < potenciaMotorMinimaGiro) {
+    potenciaAjustada = potenciaMotorMinimaGiro;
+  }
+
+  if (potenciaMotorActual == 0 && potenciaAjustada < potenciaMotorArranque) {
+    analogWrite(PIN_MOTOR, potenciaMotorArranque);
+    delay(duracionPulsoArranqueMotorMs);
+  }
+
+  aplicarPotenciaMotor(potenciaAjustada);
 }
 
 bool debeReportarSerial(bool tinacoLlenoConLedApagado) {
@@ -183,13 +228,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == topic_comando) {
     if (mensaje == "ON") {
-      digitalWrite(PIN_MOTOR, HIGH);
-      motorEncendido = true;
-      Serial.println("Comando recibido: Encender motor en GPIO27");
-      client.publish(topic_estado, "motor_on");
+      controlMotorPorSensorActivo = true;
+      Serial.println("Comando recibido: Activar PWM automatico del motor en GPIO27");
+      client.publish(topic_estado, "motor_pwm_auto_on");
     } else if (mensaje == "OFF") {
-      digitalWrite(PIN_MOTOR, LOW);
-      motorEncendido = false;
+      controlMotorPorSensorActivo = false;
+      aplicarPotenciaMotor(0);
       Serial.println("Comando recibido: Apagar motor en GPIO27");
       client.publish(topic_estado, "motor_off");
     } else {
@@ -212,8 +256,7 @@ void conectarMQTT() {
       topic_estado,
       0,
       true,
-      "offline"
-    );
+      "offline");
 
     if (conectado) {
       Serial.println("conectado");
@@ -243,7 +286,10 @@ void publicarLecturas() {
 
   float nivel = calcularNivelPorcentaje(distancia);
   int brilloCalculado = calcularBrilloLed(distancia);
+  int potenciaMotorCalculada = controlMotorPorSensorActivo ? calcularPotenciaMotor(distancia) : 0;
+
   aplicarBrilloLed(brilloCalculado);
+  aplicarPotenciaMotorConArranque(potenciaMotorCalculada);
 
   String mensajeDistancia = String(distancia, 2);
   String mensajeNivel = String(nivel, 1);
@@ -263,8 +309,10 @@ void publicarLecturas() {
   Serial.print(mensajeNivel);
   Serial.print(" % | Brillo LED: ");
   Serial.print(brilloLedActual);
-  Serial.print("/255 | Motor: ");
-  Serial.print(motorEncendido ? "ON" : "OFF");
+  Serial.print("/255 | Motor PWM: ");
+  Serial.print(potenciaMotorActual);
+  Serial.print("/255 | Motor auto: ");
+  Serial.print(controlMotorPorSensorActivo ? "ON" : "OFF");
   Serial.print(" | Estado sensor: ");
 
   if (distancia < distanciaMinSensor) {
@@ -291,10 +339,12 @@ void setup() {
   pinMode(PIN_MOTOR, OUTPUT);
   analogWriteResolution(PIN_LED, resolucionPwmLed);
   analogWriteFrequency(PIN_LED, frecuenciaPwmLed);
+  analogWriteResolution(PIN_MOTOR, resolucionPwmMotor);
+  analogWriteFrequency(PIN_MOTOR, frecuenciaPwmMotor);
 
   digitalWrite(PIN_TRIG, LOW);
-  digitalWrite(PIN_MOTOR, LOW);
   aplicarBrilloLed(0);
+  aplicarPotenciaMotor(0);
 
   Serial.println("ESP32 + Sensor ultrasonico + MQTT");
   Serial.println("---------------------------------");

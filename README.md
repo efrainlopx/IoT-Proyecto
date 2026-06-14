@@ -176,6 +176,7 @@ En esta version:
 - La ESP32 mide distancia con el sensor ultrasonico.
 - Calcula el nivel del tinaco simulado en porcentaje.
 - Ajusta el brillo de un LED en `GPIO26` mediante PWM segun la distancia medida.
+- Controla un motor en `GPIO27` mediante TIP120 y PWM.
 - Publica la distancia y el nivel hacia Mosquitto en la Raspberry Pi.
 - Sigue escuchando comandos `ON` y `OFF` desde `tinaco/comando`.
 - Reduce los mensajes del Monitor Serial cuando el tinaco esta lleno y el LED esta apagado.
@@ -199,7 +200,7 @@ Los topicos MQTT usados en la integracion son:
 | :--- | :--- |
 | `tinaco/distancia` | Distancia medida por el sensor, en cm |
 | `tinaco/nivel` | Nivel calculado del tinaco, en porcentaje |
-| `tinaco/estado` | Estado de conexion, sensor o LED |
+| `tinaco/estado` | Estado de conexion, sensor, LED o motor |
 | `tinaco/comando` | Comandos enviados hacia la ESP32 |
 
 El LED en `GPIO26` funciona como indicador visual:
@@ -212,8 +213,33 @@ Los comandos MQTT tienen esta funcion:
 
 | Comando | Funcion |
 | :--- | :--- |
-| `ON` | Activa el control automatico del LED por PWM |
-| `OFF` | Apaga el LED y desactiva el control automatico |
+| `ON` | Activa el control automatico del motor por PWM |
+| `OFF` | Apaga el motor y desactiva el control automatico |
+
+El modulo del motor quedo conectado asi:
+
+```text
+ESP32 GPIO27 -> resistencia 470 ohms -> Base TIP120
+Colector TIP120 -> negativo del motor
+Emisor TIP120 -> GND
+Positivo del motor -> +5V externo
+Diodo: catodo a +5V, anodo al colector TIP120
+GND fuente 5V externa -> GND ESP32
+```
+
+Datos principales del codigo del motor:
+
+```cpp
+const int PIN_MOTOR = 27;
+const int frecuenciaPwmMotor = 5000;
+const int resolucionPwmMotor = 8;
+const int potenciaMotorMaxima = 255;
+const int potenciaMotorMinimaGiro = 45;
+const int potenciaMotorArranque = 140;
+const unsigned long duracionPulsoArranqueMotorMs = 300;
+```
+
+Se agrego un pulso de arranque para que el motor pueda comenzar a girar aunque el PWM calculado sea bajo. Si el motor esta apagado y debe arrancar con poca potencia, primero recibe un pulso de `140/255` durante `300 ms` y despues baja al PWM calculado.
 
 Para escuchar los datos desde la Raspberry Pi se uso:
 
@@ -225,6 +251,18 @@ docker exec -it aquacontrol-mqtt mosquitto_sub \
   -P "CONTRASEÑA_MOSQUITTO" \
   -t "tinaco/#" \
   -v
+```
+
+Para apagar el motor desde la Raspberry Pi durante la prueba se uso:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -p 1883 \
+  -u IoTProyecto \
+  -P "HOLA" \
+  -t "tinaco/comando" \
+  -m "OFF"
 ```
 
 La documentacion completa de esta etapa esta en:
