@@ -17,11 +17,12 @@ const char* mqtt_user = "IoTProyecto";
 const char* mqtt_password = "HOLA";
 
 // ==========================
-// PINES DEL SENSOR ULTRASONICO
+// PINES DE HARDWARE
 // ==========================
 const int PIN_TRIG = 5;
 const int PIN_ECHO = 18;
 const int PIN_LED = 26;
+const int PIN_MOTOR = 27;
 
 // ==========================
 // MEDIDAS DEL TINACO SIMULADO
@@ -50,9 +51,9 @@ PubSubClient client(espClient);
 
 unsigned long ultimoEnvio = 0;
 unsigned long ultimoReporteSerial = 0;
-bool controlLedPorSensorActivo = true;
 bool ultimoEstadoLlenoConLedApagado = false;
 int brilloLedActual = 0;
+bool motorEncendido = false;
 
 float medirDistanciaCm() {
   digitalWrite(PIN_TRIG, LOW);
@@ -182,14 +183,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == topic_comando) {
     if (mensaje == "ON") {
-      controlLedPorSensorActivo = true;
-      Serial.println("Comando recibido: Activar PWM automatico del LED en GPIO26");
-      client.publish(topic_estado, "led_pwm_auto_on");
+      digitalWrite(PIN_MOTOR, HIGH);
+      motorEncendido = true;
+      Serial.println("Comando recibido: Encender motor en GPIO27");
+      client.publish(topic_estado, "motor_on");
     } else if (mensaje == "OFF") {
-      controlLedPorSensorActivo = false;
-      aplicarBrilloLed(0);
-      Serial.println("Comando recibido: Apagar LED en GPIO26");
-      client.publish(topic_estado, "led_off");
+      digitalWrite(PIN_MOTOR, LOW);
+      motorEncendido = false;
+      Serial.println("Comando recibido: Apagar motor en GPIO27");
+      client.publish(topic_estado, "motor_off");
     } else {
       Serial.println("Comando no reconocido");
     }
@@ -240,7 +242,7 @@ void publicarLecturas() {
   }
 
   float nivel = calcularNivelPorcentaje(distancia);
-  int brilloCalculado = controlLedPorSensorActivo ? calcularBrilloLed(distancia) : 0;
+  int brilloCalculado = calcularBrilloLed(distancia);
   aplicarBrilloLed(brilloCalculado);
 
   String mensajeDistancia = String(distancia, 2);
@@ -261,7 +263,9 @@ void publicarLecturas() {
   Serial.print(mensajeNivel);
   Serial.print(" % | Brillo LED: ");
   Serial.print(brilloLedActual);
-  Serial.print("/255 | Estado sensor: ");
+  Serial.print("/255 | Motor: ");
+  Serial.print(motorEncendido ? "ON" : "OFF");
+  Serial.print(" | Estado sensor: ");
 
   if (distancia < distanciaMinSensor) {
     Serial.println("fuera de rango, demasiado cerca");
@@ -284,15 +288,18 @@ void setup() {
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_LED, OUTPUT);
+  pinMode(PIN_MOTOR, OUTPUT);
   analogWriteResolution(PIN_LED, resolucionPwmLed);
   analogWriteFrequency(PIN_LED, frecuenciaPwmLed);
 
   digitalWrite(PIN_TRIG, LOW);
+  digitalWrite(PIN_MOTOR, LOW);
   aplicarBrilloLed(0);
 
   Serial.println("ESP32 + Sensor ultrasonico + MQTT");
   Serial.println("---------------------------------");
   Serial.println("PWM del LED configurado en GPIO26");
+  Serial.println("Motor configurado en GPIO27");
   Serial.print("Distancia vacio: ");
   Serial.print(distanciaVacio);
   Serial.println(" cm");
