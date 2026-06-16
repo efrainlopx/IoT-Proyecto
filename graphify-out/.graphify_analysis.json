@@ -1,0 +1,174 @@
+{
+  "communities": {
+    "0": [
+      "aqua_control_mainactivity_aquacontrolmqttcontroller",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_buildbrokeruri",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_closeclient",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_connect",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_disconnect",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_publishcommand",
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_subscribetotinaco",
+      "aqua_control_mainactivity_aquacontrolscreen",
+      "aqua_control_mainactivity_mqttactionlistener",
+      "imqttactionlistener",
+      "mqttasyncclient",
+      "stateflow"
+    ],
+    "1": [
+      "app_app_src_main_java_com_example_aqua_control_mainactivity_kt_boolean",
+      "aqua_control_mainactivity_aquacontroluistate",
+      "aqua_control_mainactivity_levelcard",
+      "aqua_control_mainactivity_levelcolor",
+      "aqua_control_mainactivity_progressbar",
+      "aqua_control_mainactivity_watergauge",
+      "color",
+      "float"
+    ],
+    "2": [
+      "app_app_src_main_java_com_example_aqua_control_ui_theme_theme_kt_boolean",
+      "aqua_control_mainactivity_aquacontrolpreview",
+      "aqua_control_mainactivity_mainactivity",
+      "aqua_control_mainactivity_mainactivity_oncreate",
+      "bundle",
+      "componentactivity",
+      "theme_theme",
+      "theme_theme_aquacontroltheme"
+    ],
+    "3": [
+      "aqua_control_mainactivity_aquacontrolcontent",
+      "aqua_control_mainactivity_connectioncard",
+      "aqua_control_mainactivity_header",
+      "aqua_control_mainactivity_motorcontrolcard",
+      "aqua_control_mainactivity_statuspill",
+      "aquacontroluistate",
+      "string"
+    ],
+    "4": [
+      "aqua_control_mainactivity_distancecard",
+      "aqua_control_mainactivity_statcard",
+      "aqua_control_mainactivity_statuscard",
+      "aqua_control_mainactivity_telemetrycards",
+      "modifier"
+    ],
+    "5": [
+      "aqua_control_mainactivity",
+      "aqua_control_mainactivity_connectionstatus",
+      "aqua_control_mainactivity_motorcommand",
+      "aqua_control_mainactivity_topiccard"
+    ],
+    "6": [
+      "aqua_control_exampleinstrumentedtest",
+      "aqua_control_exampleinstrumentedtest_exampleinstrumentedtest",
+      "aqua_control_exampleinstrumentedtest_exampleinstrumentedtest_useappcontext"
+    ],
+    "7": [
+      "aqua_control_exampleunittest",
+      "aqua_control_exampleunittest_exampleunittest",
+      "aqua_control_exampleunittest_exampleunittest_addition_iscorrect"
+    ],
+    "8": [
+      "aqua_control_mainactivity_aquacontrolmqttcontroller_handlemessage",
+      "aqua_control_mainactivity_firstfloatornull"
+    ],
+    "9": [
+      "app_app_build_gradle_kts_app_build_gradle"
+    ],
+    "10": [
+      "app_build_gradle_kts_app_build_gradle"
+    ],
+    "11": [
+      "app_settings_gradle"
+    ],
+    "12": [
+      "theme_color"
+    ],
+    "13": [
+      "theme_type"
+    ]
+  },
+  "cohesion": {
+    "0": 0.3181818181818182,
+    "1": 0.4642857142857143,
+    "2": 0.25,
+    "3": 0.5714285714285714,
+    "4": 0.7,
+    "5": 0.5,
+    "6": 0.6666666666666666,
+    "7": 0.6666666666666666,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0
+  },
+  "gods": [
+    {
+      "id": "aqua_control_mainactivity_aquacontrolcontent",
+      "label": "AquaControlContent()",
+      "degree": 12
+    },
+    {
+      "id": "aqua_control_mainactivity_aquacontrolmqttcontroller",
+      "label": "AquaControlMqttController",
+      "degree": 12
+    },
+    {
+      "id": "aquacontroluistate",
+      "label": "AquaControlUiState",
+      "degree": 9
+    },
+    {
+      "id": "string",
+      "label": "String",
+      "degree": 9
+    },
+    {
+      "id": "color",
+      "label": "Color",
+      "degree": 8
+    },
+    {
+      "id": "aqua_control_mainactivity_levelcard",
+      "label": "LevelCard()",
+      "degree": 7
+    },
+    {
+      "id": "aqua_control_mainactivity_aquacontrolscreen",
+      "label": "AquaControlScreen()",
+      "degree": 6
+    },
+    {
+      "id": "aqua_control_mainactivity_statcard",
+      "label": "StatCard()",
+      "degree": 6
+    },
+    {
+      "id": "aqua_control_mainactivity_watergauge",
+      "label": "WaterGauge()",
+      "degree": 5
+    },
+    {
+      "id": "aqua_control_mainactivity_telemetrycards",
+      "label": "TelemetryCards()",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "AquaControlPreview()",
+      "target": "AquaControlTheme()",
+      "source_files": [
+        "App/app/src/main/java/com/example/aqua_control/MainActivity.kt",
+        "App/app/src/main/java/com/example/aqua_control/ui/theme/Theme.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

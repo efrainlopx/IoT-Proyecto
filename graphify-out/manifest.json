@@ -1,0 +1,47 @@
+{
+  "App/app/build.gradle.kts": {
+    "mtime": 1781540189.976784,
+    "ast_hash": "a72d5833df1d7383765e21bea468bf17",
+    "semantic_hash": "a72d5833df1d7383765e21bea468bf17"
+  },
+  "App/app/src/androidTest/java/com/example/aqua_control/ExampleInstrumentedTest.kt": {
+    "mtime": 1781540189.9773712,
+    "ast_hash": "2a4ab490142be2fba789a996c770a056",
+    "semantic_hash": "2a4ab490142be2fba789a996c770a056"
+  },
+  "App/app/src/main/java/com/example/aqua_control/MainActivity.kt": {
+    "mtime": 1781540189.9788456,
+    "ast_hash": "8cf5290f64890d89d25c5e102a480519",
+    "semantic_hash": "8cf5290f64890d89d25c5e102a480519"
+  },
+  "App/app/src/main/java/com/example/aqua_control/ui/theme/Color.kt": {
+    "mtime": 1781540189.9794219,
+    "ast_hash": "e30011cf3d34db320004a1738a4518f4",
+    "semantic_hash": "e30011cf3d34db320004a1738a4518f4"
+  },
+  "App/app/src/main/java/com/example/aqua_control/ui/theme/Theme.kt": {
+    "mtime": 1781540189.9796035,
+    "ast_hash": "548e931c6eda9b2fddc6a83b67f15c17",
+    "semantic_hash": "548e931c6eda9b2fddc6a83b67f15c17"
+  },
+  "App/app/src/main/java/com/example/aqua_control/ui/theme/Type.kt": {
+    "mtime": 1781540189.9796035,
+    "ast_hash": "02eafb62ec1247d08d0205589c8b0408",
+    "semantic_hash": "02eafb62ec1247d08d0205589c8b0408"
+  },
+  "App/app/src/test/java/com/example/aqua_control/ExampleUnitTest.kt": {
+    "mtime": 1781540189.9829612,
+    "ast_hash": "c59b5afe6c656ca2dcb8e2ac1b3f3f39",
+    "semantic_hash": "c59b5afe6c656ca2dcb8e2ac1b3f3f39"
+  },
+  "App/build.gradle.kts": {
+    "mtime": 1781540189.9829612,
+    "ast_hash": "f49e4fcefdb4de67e72283440b2f3b75",
+    "semantic_hash": "f49e4fcefdb4de67e72283440b2f3b75"
+  },
+  "App/settings.gradle.kts": {
+    "mtime": 1781540189.984142,
+    "ast_hash": "919e65f413e39779b78af6bad074ebd7",
+    "semantic_hash": "919e65f413e39779b78af6bad074ebd7"
+  }
+}
