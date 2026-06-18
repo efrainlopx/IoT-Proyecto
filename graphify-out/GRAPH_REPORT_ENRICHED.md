@@ -1,9 +1,9 @@
 # Enriched Graph Report - AquaControl IoT
 
 ## Summary
-- Base Graphify graph: 159 nodes, 256 links.
-- Enriched graph: 372 nodes, 568 links.
-- Added: 213 nodes, 312 links.
+- Base Graphify graph: 202 nodes, 332 links.
+- Enriched graph: 440 nodes, 684 links.
+- Added: 238 nodes, 352 links.
 - Outputs:
   - `graphify-out/graph_enriched.json`
   - `graphify-out/graph_enriched.dot`
@@ -20,17 +20,22 @@
 - `App/app/src/main/java/com/example/aqua_control/data/AuthDatabaseHelper.kt`
 - `App/app/src/main/java/com/example/aqua_control/model/ControlMode.kt`
 - `App/app/src/main/java/com/example/aqua_control/mqtt/AquaMqttClient.kt`
+- `App/app/src/main/java/com/example/aqua_control/provisioning/DeviceConfigStore.kt`
+- `App/app/src/main/java/com/example/aqua_control/provisioning/EspProvisioningClient.kt`
 - `App/app/src/main/java/com/example/aqua_control/ui/TankLevelView.kt`
 - `App/app/src/test/java/com/example/aqua_control/ExampleUnitTest.kt`
 - `App/build.gradle.kts`
 - `App/settings.gradle.kts`
+- `Docs/provisionamiento_app_esp32_raspberry.md`
 - `Docs/prueba_esp32_raspberry_mqtt.md`
 - `Docs/prueba_esp32_ultrasonico_mqtt.md`
 - `README.md`
+- `Raspberry/setup_raspberry_mqtt.sh`
 
 ## Added File Coverage
-- docs: 4 file(s)
+- docs: 5 file(s)
   - `README.md`
+  - `Docs/provisionamiento_app_esp32_raspberry.md`
   - `Docs/prueba_esp32_raspberry_mqtt.md`
   - `Docs/prueba_esp32_ultrasonico_mqtt.md`
   - `Notas/Bitacora_Raspberry_MQTT.txt`
@@ -67,21 +72,21 @@
 - `android_activity`: 2
 - `android_network_policy`: 1
 - `android_permission`: 1
-- `android_resource`: 33
+- `android_resource`: 37
 - `component`: 10
 - `config`: 4
-- `doc_section`: 60
+- `doc_section`: 69
 - `docker_image`: 1
 - `docker_service`: 1
 - `docker_volume`: 3
 - `firmware`: 2
-- `firmware_function`: 21
+- `firmware_function`: 33
 - `firmware_safety_state`: 4
 - `gpio_pin`: 4
-- `markdown`: 3
+- `markdown`: 4
 - `mosquitto_setting`: 6
 - `mqtt_command`: 2
-- `mqtt_endpoint`: 2
+- `mqtt_endpoint`: 1
 - `mqtt_secret`: 1
 - `mqtt_topic`: 7
 - `network_port`: 1
@@ -107,21 +112,21 @@
 - `AndroidManifest.xml` enables `android:usesCleartextTraffic="true"`, which is required for plain TCP MQTT but should be revisited for production.
 
 ## Top Relations
-- `calls`: 78
-- `contains`: 66
-- `references`: 60
-- `contains_section`: 60
-- `method`: 49
-- `references_resource`: 46
-- `documents_component`: 30
+- `calls`: 100
+- `references`: 82
+- `contains`: 81
+- `contains_section`: 69
+- `method`: 66
+- `references_resource`: 48
+- `documents_component`: 36
+- `contains_function`: 33
 - `has_root`: 21
-- `contains_function`: 21
-- `declares_resource`: 17
-- `mentions_topic`: 13
+- `declares_resource`: 21
+- `mentions_topic`: 17
+- `references_file`: 12
 - `publishes`: 11
-- `references_file`: 9
+- `mentions_command`: 8
 - `defines_topic_constant`: 7
 - `inherits`: 6
-- `mentions_command`: 6
-- `enters_safe_state`: 6
 - `handles_command`: 6
+- `uses_setting`: 6

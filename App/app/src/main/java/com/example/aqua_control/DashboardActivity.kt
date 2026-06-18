@@ -10,14 +10,24 @@ import android.widget.TextView
 import com.example.aqua_control.config.ProjectConfig
 import com.example.aqua_control.model.ControlMode
 import com.example.aqua_control.mqtt.AquaMqttClient
+import com.example.aqua_control.provisioning.DeviceConfigStore
+import com.example.aqua_control.provisioning.EspProvisioningClient
+import com.example.aqua_control.provisioning.EspProvisioningRequest
 import com.example.aqua_control.ui.TankLevelView
 import java.util.Locale
 
 class DashboardActivity : Activity(), AquaMqttClient.Listener {
     private lateinit var mqttClient: AquaMqttClient
+    private lateinit var configStore: DeviceConfigStore
+    private val provisioningClient = EspProvisioningClient()
 
     private lateinit var inputRaspberryIp: EditText
     private lateinit var inputHotspotName: EditText
+    private lateinit var inputEsp32SetupHost: EditText
+    private lateinit var inputWifiSsid: EditText
+    private lateinit var inputWifiPassword: EditText
+    private lateinit var inputMqttUser: EditText
+    private lateinit var inputMqttPassword: EditText
     private lateinit var inputAutoThreshold: EditText
     private lateinit var radioAutomatic: RadioButton
     private lateinit var radioManual: RadioButton
@@ -28,9 +38,11 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
     private lateinit var textEspStatus: TextView
     private lateinit var textModeStatus: TextView
     private lateinit var textLastMessage: TextView
+    private lateinit var textProvisioningStatus: TextView
     private lateinit var tankLevelView: TankLevelView
     private lateinit var buttonManualOn: Button
     private lateinit var buttonManualOff: Button
+    private lateinit var buttonProvisionEsp32: Button
 
     private var connected = false
     private var subscribed = false
@@ -47,6 +59,7 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
         setContentView(R.layout.activity_dashboard)
 
         mqttClient = AquaMqttClient(this)
+        configStore = DeviceConfigStore(this)
         bindViews()
         configureInitialState()
         configureActions()
@@ -60,6 +73,11 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
     private fun bindViews() {
         inputRaspberryIp = findViewById(R.id.inputRaspberryIp)
         inputHotspotName = findViewById(R.id.inputHotspotName)
+        inputEsp32SetupHost = findViewById(R.id.inputEsp32SetupHost)
+        inputWifiSsid = findViewById(R.id.inputWifiSsid)
+        inputWifiPassword = findViewById(R.id.inputWifiPassword)
+        inputMqttUser = findViewById(R.id.inputMqttUser)
+        inputMqttPassword = findViewById(R.id.inputMqttPassword)
         inputAutoThreshold = findViewById(R.id.inputAutoThreshold)
         radioAutomatic = findViewById(R.id.radioAutomatic)
         radioManual = findViewById(R.id.radioManual)
@@ -70,25 +88,38 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
         textEspStatus = findViewById(R.id.textEspStatus)
         textModeStatus = findViewById(R.id.textModeStatus)
         textLastMessage = findViewById(R.id.textLastMessage)
+        textProvisioningStatus = findViewById(R.id.textProvisioningStatus)
         tankLevelView = findViewById(R.id.tankLevelView)
         buttonManualOn = findViewById(R.id.buttonManualOn)
         buttonManualOff = findViewById(R.id.buttonManualOff)
+        buttonProvisionEsp32 = findViewById(R.id.buttonProvisionEsp32)
     }
 
     private fun configureInitialState() {
-        inputRaspberryIp.setText(ProjectConfig.DEFAULT_RASPBERRY_IP)
-        inputHotspotName.setText(ProjectConfig.DEFAULT_HOTSPOT_SSID)
+        val savedConfig = configStore.load()
+        inputRaspberryIp.setText(savedConfig.brokerHost)
+        inputHotspotName.setText(savedConfig.wifiSsid)
+        inputEsp32SetupHost.setText(savedConfig.esp32SetupHost)
+        inputWifiSsid.setText(savedConfig.wifiSsid)
+        inputMqttUser.setText(savedConfig.mqttUser)
+        inputMqttPassword.setText(savedConfig.mqttPassword)
         inputAutoThreshold.setText(ProjectConfig.DEFAULT_AUTO_THRESHOLD_PERCENT.toInt().toString())
         updateNetworkSummary()
         setConnectionStatus("Desconectado", R.color.warning)
+        setProvisioningStatus("Para configurar el ESP32, conecta el celular a AquaControl-Setup y envia estos datos.", false)
         setModeStatus("Modo automatico listo. Conecta MQTT para controlar el tinaco.")
         updateControls()
     }
 
     private fun configureActions() {
         findViewById<Button>(R.id.buttonConnect).setOnClickListener {
+            val brokerHost = brokerHostInput()
+            val wifiSsid = wifiSsidInput()
+            val mqttUser = mqttUserInput()
+            val mqttPassword = mqttPasswordInput()
+            configStore.saveConnection(brokerHost, wifiSsid, mqttUser, mqttPassword)
             updateNetworkSummary()
-            mqttClient.connect(inputRaspberryIp.text.toString())
+            mqttClient.connect(brokerHost, mqttUser, mqttPassword)
         }
         findViewById<Button>(R.id.buttonDisconnect).setOnClickListener {
             mqttClient.disconnect()
@@ -98,6 +129,7 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
             setLastMessage("MQTT desconectado")
             updateControls()
         }
+        buttonProvisionEsp32.setOnClickListener { sendEsp32Provisioning() }
         findViewById<RadioGroup>(R.id.radioControlMode).setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.radioAutomatic -> activateAutomaticMode()
@@ -119,6 +151,50 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
             requestMotorCommand(ProjectConfig.COMMAND_OFF, "Manual: motor apagado por el usuario", force = true)
             updateControls()
         }
+        findViewById<Button>(R.id.buttonResetEsp32Config).setOnClickListener {
+            requestMotorCommand(ProjectConfig.COMMAND_RESET_CONFIG, "ESP32: borrar configuracion WiFi y volver a modo setup", force = true)
+        }
+    }
+
+    private fun sendEsp32Provisioning() {
+        val request = EspProvisioningRequest(
+            esp32SetupHost = inputEsp32SetupHost.text.toString(),
+            wifiSsid = wifiSsidInput(),
+            wifiPassword = inputWifiPassword.text.toString(),
+            mqttHost = brokerHostInput(),
+            mqttUser = mqttUserInput(),
+            mqttPassword = mqttPasswordInput(),
+        )
+
+        if (request.wifiSsid.isBlank()) {
+            setProvisioningStatus("Ingresa el nombre de la red WiFi a la que se conectara el ESP32.", true)
+            return
+        }
+        if (request.mqttHost.isBlank()) {
+            setProvisioningStatus("Ingresa el host/IP de la Raspberry. Para tu red actual puedes usar 192.168.1.127.", true)
+            return
+        }
+
+        inputHotspotName.setText(request.wifiSsid)
+        configStore.saveProvisioning(request)
+        updateNetworkSummary()
+        buttonProvisionEsp32.isEnabled = false
+        setProvisioningStatus("Enviando configuracion a ${request.esp32SetupHost.ifBlank { ProjectConfig.DEFAULT_ESP32_SETUP_HOST }}...", false)
+
+        provisioningClient.send(
+            request,
+            object : EspProvisioningClient.Callback {
+                override fun onSuccess(message: String) = runOnUiThread {
+                    buttonProvisionEsp32.isEnabled = true
+                    setProvisioningStatus("$message Despues vuelve a conectar el celular al WiFi normal y pulsa Conectar MQTT.", false)
+                }
+
+                override fun onError(message: String) = runOnUiThread {
+                    buttonProvisionEsp32.isEnabled = true
+                    setProvisioningStatus("No se pudo configurar el ESP32: $message", true)
+                }
+            },
+        )
     }
 
     private fun activateAutomaticMode() {
@@ -210,9 +286,9 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
     }
 
     private fun updateNetworkSummary() {
-        val hotspot = inputHotspotName.text.toString().ifBlank { ProjectConfig.DEFAULT_HOTSPOT_SSID }
-        val raspberry = inputRaspberryIp.text.toString().ifBlank { ProjectConfig.DEFAULT_RASPBERRY_IP }
-        textNetworkSummary.text = "Hotspot $hotspot | Raspberry $raspberry"
+        val wifi = wifiSsidInput().ifBlank { "WiFi sin definir" }
+        val broker = brokerHostInput().ifBlank { ProjectConfig.DEFAULT_RASPBERRY_HOST }
+        textNetworkSummary.text = "WiFi $wifi | Broker $broker"
     }
 
     private fun updateControls() {
@@ -223,9 +299,28 @@ class DashboardActivity : Activity(), AquaMqttClient.Listener {
         buttonManualOff.alpha = if (buttonManualOff.isEnabled) 1f else 0.45f
     }
 
+    private fun brokerHostInput(): String = inputRaspberryIp.text.toString().trim()
+        .ifBlank { ProjectConfig.DEFAULT_RASPBERRY_HOST }
+
+    private fun wifiSsidInput(): String {
+        return inputWifiSsid.text.toString().trim()
+            .ifBlank { inputHotspotName.text.toString().trim() }
+    }
+
+    private fun mqttUserInput(): String = inputMqttUser.text.toString().trim()
+        .ifBlank { ProjectConfig.MQTT_USERNAME }
+
+    private fun mqttPasswordInput(): String = inputMqttPassword.text.toString()
+        .ifBlank { ProjectConfig.MQTT_PASSWORD }
+
     private fun setConnectionStatus(text: String, colorRes: Int) {
         textConnectionStatus.text = text
         textConnectionStatus.setTextColor(getColor(colorRes))
+    }
+
+    private fun setProvisioningStatus(text: String, isError: Boolean) {
+        textProvisioningStatus.text = text
+        textProvisioningStatus.setTextColor(getColor(if (isError) R.color.danger else R.color.muted_ink))
     }
 
     private fun setModeStatus(text: String) {

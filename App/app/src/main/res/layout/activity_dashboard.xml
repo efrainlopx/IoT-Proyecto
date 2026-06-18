@@ -36,7 +36,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Hotspot prueba | Raspberry 10.71.193.168"
+                    android:text="WiFi sin definir | Broker 192.168.1.127"
                     android:textColor="#CCFFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -72,7 +72,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:text="IP Raspberry / broker"
+                android:text="Host/IP Raspberry o broker"
                 android:textColor="@color/ink"
                 android:textStyle="bold" />
 
@@ -82,16 +82,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/input_surface"
+                android:hint="192.168.1.127 o aqua-pi.local"
                 android:inputType="textUri"
                 android:maxLines="1"
-                android:text="@string/default_raspberry_ip"
-                android:textColor="@color/ink" />
+                android:text="@string/default_raspberry_host"
+                android:textColor="@color/ink"
+                android:textColorHint="@color/muted_ink" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:text="Hotspot / red Wi-Fi"
+                android:text="Red WiFi de trabajo"
                 android:textColor="@color/ink"
                 android:textStyle="bold" />
 
@@ -101,10 +103,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/input_surface"
+                android:hint="SSID donde estaran app, Raspberry y ESP32"
                 android:inputType="text"
                 android:maxLines="1"
-                android:text="@string/default_hotspot_ssid"
-                android:textColor="@color/ink" />
+                android:textColor="@color/ink"
+                android:textColorHint="@color/muted_ink" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -136,6 +139,144 @@
                     android:textColor="@color/ocean"
                     android:textStyle="bold" />
             </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/card_surface"
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Configuracion inicial ESP32"
+                android:textColor="@color/ink"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Primero conecta el celular a AquaControl-Setup. Luego envia el WiFi y el broker que usara la ESP32."
+                android:textColor="@color/muted_ink"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Host del portal ESP32"
+                android:textColor="@color/ink"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/inputEsp32SetupHost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_surface"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:text="@string/default_esp32_setup_host"
+                android:textColor="@color/ink" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="WiFi al que se conectara el ESP32"
+                android:textColor="@color/ink"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/inputWifiSsid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_surface"
+                android:hint="Nombre de tu red WiFi"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textColorHint="@color/muted_ink" />
+
+            <EditText
+                android:id="@+id/inputWifiPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_surface"
+                android:hint="Contrasena WiFi"
+                android:inputType="textPassword"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textColorHint="@color/muted_ink" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Credenciales MQTT"
+                android:textColor="@color/ink"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/inputMqttUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_surface"
+                android:inputType="text"
+                android:maxLines="1"
+                android:text="@string/default_mqtt_user"
+                android:textColor="@color/ink" />
+
+            <EditText
+                android:id="@+id/inputMqttPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_surface"
+                android:inputType="textPassword"
+                android:maxLines="1"
+                android:text="@string/default_mqtt_password"
+                android:textColor="@color/ink" />
+
+            <Button
+                android:id="@+id/buttonProvisionEsp32"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/button_success"
+                android:text="Enviar configuracion al ESP32"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/buttonResetEsp32Config"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/button_outline"
+                android:text="Borrar WiFi guardado del ESP32"
+                android:textAllCaps="false"
+                android:textColor="@color/ocean"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textProvisioningStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Esperando configuracion del ESP32"
+                android:textColor="@color/muted_ink"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <LinearLayout

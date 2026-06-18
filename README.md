@@ -37,6 +37,49 @@ ESP32 + Sensor ultrasónico + Motor
 
 En esta etapa, el repositorio contiene la configuración necesaria para ejecutar el broker MQTT Mosquitto mediante Docker Compose.
 
+## Provisionamiento recomendado
+
+El flujo actual evita dejar el WiFi fijo dentro del firmware del ESP32.
+
+En primer arranque, el ESP32 crea una red temporal:
+
+```text
+SSID: AquaControl-Setup
+Password: aquapi123
+IP: 192.168.4.1
+```
+
+Desde la app Android se envia al ESP32:
+
+- SSID del WiFi real.
+- Contrasena del WiFi.
+- Host/IP de la Raspberry o broker MQTT.
+- Usuario y contrasena MQTT.
+
+La Raspberry puede usarse por IP, por ejemplo:
+
+```text
+192.168.1.127
+```
+
+O por nombre local si Avahi/mDNS esta disponible:
+
+```text
+aqua-pi.local
+```
+
+Guia completa:
+
+```text
+Docs/provisionamiento_app_esp32_raspberry.md
+```
+
+Script de preparacion para Raspberry:
+
+```text
+Raspberry/setup_raspberry_mqtt.sh
+```
+
 ## Ejecución
 
 Crear localmente el archivo de credenciales MQTT:
@@ -294,8 +337,12 @@ La documentacion completa de esta etapa esta en:
 Docs/prueba_esp32_ultrasonico_mqtt.md
 ```
 
-El codigo usado para la prueba del sensor y la integracion MQTT esta en:
+El firmware actual que se debe abrir en Arduino IDE esta en:
 
 ```text
 ESP32/ESP32_Prueba_Sensor_Ultrasonico/Sensor_Ultrasonico_ESP32/Sensor_Ultrasonico_ESP32.ino
 ```
+
+Ese sketch ya incluye portal de configuracion `AquaControl-Setup`, guarda WiFi/MQTT en memoria flash y conserva la lectura del sensor ultrasonico, LED, motor y topicos MQTT.
+
+El sketch `ESP32/prueba_mqtt_esp32/prueba_mqtt_esp32.ino` queda solo como prueba historica de comunicacion MQTT con datos fijos.

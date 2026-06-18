@@ -30,13 +30,13 @@
     "semantic_hash": "919e65f413e39779b78af6bad074ebd7"
   },
   "App/app/src/main/java/com/example/aqua_control/DashboardActivity.kt": {
-    "mtime": 1781758026.477421,
-    "ast_hash": "cff24555ad684af87d240cf585f50a06",
+    "mtime": 1781762079.2142937,
+    "ast_hash": "6abd5c4237820ae1679b3f9530598c16",
     "semantic_hash": ""
   },
   "App/app/src/main/java/com/example/aqua_control/config/ProjectConfig.kt": {
-    "mtime": 1781757762.7615318,
-    "ast_hash": "fa5512def7a873b30ed1972ab7327b93",
+    "mtime": 1781761887.0563633,
+    "ast_hash": "3c2bbb0a26ed86fc209cafbd0828a62e",
     "semantic_hash": ""
   },
   "App/app/src/main/java/com/example/aqua_control/data/AuthDatabaseHelper.kt": {
@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "App/app/src/main/java/com/example/aqua_control/mqtt/AquaMqttClient.kt": {
-    "mtime": 1781758357.2348738,
-    "ast_hash": "7d04e016ae8d337586773b969b065e3e",
+    "mtime": 1781761924.3498628,
+    "ast_hash": "f822cac67b05237fb3ca6b1ebd3bdad6",
     "semantic_hash": ""
   },
   "App/app/src/main/java/com/example/aqua_control/ui/TankLevelView.kt": {
@@ -70,8 +70,93 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1781416110.4610517,
-    "ast_hash": "b0f1bbf42affcff3d065e078f9ba264a",
+    "mtime": 1781762336.16487,
+    "ast_hash": "1bc3643874d04417b913abc05fc895c2",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/java/com/example/aqua_control/provisioning/DeviceConfigStore.kt": {
+    "mtime": 1781761887.0580404,
+    "ast_hash": "922e73a157cbeece0a3eae0557570b94",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/java/com/example/aqua_control/provisioning/EspProvisioningClient.kt": {
+    "mtime": 1781761887.0588365,
+    "ast_hash": "d1b704f1237c94f417f6159cccd695cd",
+    "semantic_hash": ""
+  },
+  "App/gradlew": {
+    "mtime": 1781417306.8635888,
+    "ast_hash": "266606e78242737ef3da02a80ea0564d",
+    "semantic_hash": ""
+  },
+  "Raspberry/setup_raspberry_mqtt.sh": {
+    "mtime": 1781762326.4611924,
+    "ast_hash": "0ede032c2954f1da2908ac990dc06951",
+    "semantic_hash": ""
+  },
+  "Docs/provisionamiento_app_esp32_raspberry.md": {
+    "mtime": 1781762326.4632442,
+    "ast_hash": "8f9ca67e2b2afb489209fb263e7fad3d",
+    "semantic_hash": ""
+  },
+  "Notas/Bitacora_Raspberry_MQTT.txt": {
+    "mtime": 1780372872.8602788,
+    "ast_hash": "3ccda55e73859a7ed9072b0d0f3b39ee",
+    "semantic_hash": ""
+  },
+  "compose.yaml": {
+    "mtime": 1780020284.6588056,
+    "ast_hash": "87ce4db96cf9c0bd812502904d3789c9",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-hdpi/ic_launcher.webp": {
+    "mtime": 1781417307.631588,
+    "ast_hash": "39d9bb21eb48f128a71c3f01ad3cd427",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp": {
+    "mtime": 1781417307.633588,
+    "ast_hash": "70d6f58af3c76ee221c829b1ce9daa04",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-mdpi/ic_launcher.webp": {
+    "mtime": 1781417307.638588,
+    "ast_hash": "d2acce71c7b46e5e9540d23a9f7b2166",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp": {
+    "mtime": 1781417307.640588,
+    "ast_hash": "6376acb48f96a855ee95c113cd7fd616",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xhdpi/ic_launcher.webp": {
+    "mtime": 1781417307.645588,
+    "ast_hash": "bd087d80b70bec05a43c745f29dc3ffc",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp": {
+    "mtime": 1781417307.648588,
+    "ast_hash": "7479edd56ab712609f030054bffd7263",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp": {
+    "mtime": 1781417307.6535878,
+    "ast_hash": "ea180e8d1a2e8300cc998b987266b736",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp": {
+    "mtime": 1781417307.655588,
+    "ast_hash": "947842742b29eeda80ee0805e1600366",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp": {
+    "mtime": 1781417307.660588,
+    "ast_hash": "54ab624970c86c2146e76b93f27586f7",
+    "semantic_hash": ""
+  },
+  "App/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp": {
+    "mtime": 1781417307.662588,
+    "ast_hash": "9ee591be72fb336861a8044086054daa",
     "semantic_hash": ""
   }
 }

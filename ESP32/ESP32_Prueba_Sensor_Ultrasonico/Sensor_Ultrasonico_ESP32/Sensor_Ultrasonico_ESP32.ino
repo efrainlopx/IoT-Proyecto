@@ -1,20 +1,23 @@
 #include <WiFi.h>
+#include <WebServer.h>
+#include <Preferences.h>
 #include <PubSubClient.h>
 
 // ==========================
-// DATOS DEL HOTSPOT
+// PORTAL DE CONFIGURACION ESP32
 // ==========================
-const char* ssid = "prueba";
-const char* password = "holahola";
+const char* setup_ap_ssid = "AquaControl-Setup";
+const char* setup_ap_password = "aquapi123";
+IPAddress setup_ap_ip(192, 168, 4, 1);
+IPAddress setup_ap_gateway(192, 168, 4, 1);
+IPAddress setup_ap_subnet(255, 255, 255, 0);
 
 // ==========================
-// DATOS DEL BROKER MQTT
-// Raspberry Pi en hotspot
+// MQTT POR DEFECTO
 // ==========================
-const char* mqtt_server = "10.71.193.168";
-const int mqtt_port = 1883;
-const char* mqtt_user = "IoTProyecto";
-const char* mqtt_password = "HOLA";
+const char* mqtt_user_default = "IoTProyecto";
+const char* mqtt_password_default = "HOLA";
+const int mqtt_port_default = 1883;
 
 // ==========================
 // PINES DE HARDWARE
@@ -35,6 +38,8 @@ const float nivelMinimoMotorAlto = 20.0;
 const unsigned long timeoutUltrasonicoUs = 30000;
 const unsigned long intervaloPublicacionMs = 3000;
 const unsigned long intervaloSerialLlenoMs = 60000;
+const unsigned long tiempoMaximoConexionWifiMs = 20000;
+const unsigned long intervaloReintentoMqttMs = 5000;
 const int frecuenciaPwmLed = 5000;
 const int resolucionPwmLed = 8;
 const int brilloLedMaximo = 255;
@@ -55,14 +60,164 @@ const char* topic_comando = "tinaco/comando";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+WebServer setupServer(80);
+Preferences preferences;
+
+String wifiSsid = "";
+String wifiPassword = "";
+String mqttHost = "";
+String mqttUser = mqtt_user_default;
+String mqttPassword = mqtt_password_default;
+int mqttPort = mqtt_port_default;
 
 unsigned long ultimoEnvio = 0;
 unsigned long ultimoReporteSerial = 0;
+unsigned long ultimoIntentoMqtt = 0;
+bool setupPortalActivo = false;
 bool ultimoEstadoLlenoConLedApagado = false;
 bool modoSeguroActivo = false;
 int brilloLedActual = 0;
 bool controlMotorPorSensorActivo = false;
 int potenciaMotorActual = 0;
+
+void aplicarPotenciaMotor(int potencia);
+void activarModoSeguro(const char* motivo);
+
+void cargarConfiguracion() {
+  preferences.begin("aquacontrol", false);
+  wifiSsid = preferences.getString("wifi_ssid", "");
+  wifiPassword = preferences.getString("wifi_pass", "");
+  mqttHost = preferences.getString("mqtt_host", "");
+  mqttPort = preferences.getInt("mqtt_port", mqtt_port_default);
+  mqttUser = preferences.getString("mqtt_user", mqtt_user_default);
+  mqttPassword = preferences.getString("mqtt_pass", mqtt_password_default);
+}
+
+bool configuracionCompleta() {
+  return wifiSsid.length() > 0 && mqttHost.length() > 0;
+}
+
+String normalizarArg(const String& nombre) {
+  String valor = setupServer.arg(nombre);
+  valor.trim();
+  return valor;
+}
+
+void guardarConfiguracionDesdePortal() {
+  wifiSsid = normalizarArg("ssid");
+  wifiPassword = setupServer.arg("password");
+  mqttHost = normalizarArg("mqtt_host");
+  mqttPort = normalizarArg("mqtt_port").toInt();
+  mqttUser = normalizarArg("mqtt_user");
+  mqttPassword = setupServer.arg("mqtt_password");
+
+  if (mqttPort <= 0) {
+    mqttPort = mqtt_port_default;
+  }
+  if (mqttUser.length() == 0) {
+    mqttUser = mqtt_user_default;
+  }
+  if (mqttPassword.length() == 0) {
+    mqttPassword = mqtt_password_default;
+  }
+
+  preferences.putString("wifi_ssid", wifiSsid);
+  preferences.putString("wifi_pass", wifiPassword);
+  preferences.putString("mqtt_host", mqttHost);
+  preferences.putInt("mqtt_port", mqttPort);
+  preferences.putString("mqtt_user", mqttUser);
+  preferences.putString("mqtt_pass", mqttPassword);
+}
+
+void borrarConfiguracion() {
+  preferences.clear();
+  wifiSsid = "";
+  wifiPassword = "";
+  mqttHost = "";
+  mqttPort = mqtt_port_default;
+  mqttUser = mqtt_user_default;
+  mqttPassword = mqtt_password_default;
+}
+
+void responderPortalInicio() {
+  String html = "<!doctype html><html><head><meta charset='utf-8'><title>AquaControl Setup</title></head>";
+  html += "<body style='font-family:sans-serif;padding:24px'>";
+  html += "<h1>AquaControl ESP32</h1>";
+  html += "<p>Usa la app para enviar SSID, contrasena WiFi y broker MQTT.</p>";
+  html += "<p>Endpoint: POST /config</p>";
+  html += "<p>AP: ";
+  html += setup_ap_ssid;
+  html += " | IP: ";
+  html += WiFi.softAPIP().toString();
+  html += "</p></body></html>";
+  setupServer.send(200, "text/html", html);
+}
+
+void responderEstadoPortal() {
+  String estado = "{";
+  estado += "\"setup_portal\":" + String(setupPortalActivo ? "true" : "false") + ",";
+  estado += "\"configured\":" + String(configuracionCompleta() ? "true" : "false") + ",";
+  estado += "\"wifi_status\":" + String(WiFi.status()) + ",";
+  estado += "\"wifi_ssid\":\"" + wifiSsid + "\",";
+  estado += "\"mqtt_host\":\"" + mqttHost + "\",";
+  estado += "\"ip\":\"" + WiFi.localIP().toString() + "\"";
+  estado += "}";
+  setupServer.send(200, "application/json", estado);
+}
+
+void recibirConfiguracionPortal() {
+  String ssidRecibido = normalizarArg("ssid");
+  String brokerRecibido = normalizarArg("mqtt_host");
+
+  if (ssidRecibido.length() == 0 || brokerRecibido.length() == 0) {
+    setupServer.send(400, "text/plain", "Faltan ssid o mqtt_host");
+    return;
+  }
+
+  guardarConfiguracionDesdePortal();
+  setupServer.send(200, "text/plain", "Configuracion guardada. El ESP32 se reiniciara.");
+  delay(1000);
+  ESP.restart();
+}
+
+void reiniciarConfiguracionPortal() {
+  borrarConfiguracion();
+  setupServer.send(200, "text/plain", "Configuracion borrada. El ESP32 se reiniciara en modo setup.");
+  delay(1000);
+  ESP.restart();
+}
+
+void iniciarPortalConfiguracion(const char* motivo) {
+  if (setupPortalActivo) {
+    return;
+  }
+
+  aplicarPotenciaMotor(0);
+  modoSeguroActivo = true;
+  setupPortalActivo = true;
+
+  WiFi.disconnect();
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(setup_ap_ip, setup_ap_gateway, setup_ap_subnet);
+  WiFi.softAP(setup_ap_ssid, setup_ap_password);
+
+  setupServer.on("/", HTTP_GET, responderPortalInicio);
+  setupServer.on("/status", HTTP_GET, responderEstadoPortal);
+  setupServer.on("/config", HTTP_POST, recibirConfiguracionPortal);
+  setupServer.on("/reset", HTTP_POST, reiniciarConfiguracionPortal);
+  setupServer.begin();
+
+  Serial.println();
+  Serial.println("Portal de configuracion activo");
+  Serial.print("Motivo: ");
+  Serial.println(motivo);
+  Serial.print("SSID setup: ");
+  Serial.println(setup_ap_ssid);
+  Serial.print("Password setup: ");
+  Serial.println(setup_ap_password);
+  Serial.print("IP setup: ");
+  Serial.println(WiFi.softAPIP());
+}
 
 float medirDistanciaCm() {
   digitalWrite(PIN_TRIG, LOW);
@@ -207,25 +362,41 @@ bool debeReportarSerial(bool tinacoLlenoConLedApagado) {
   return false;
 }
 
-void conectarWiFi() {
+bool conectarWiFi() {
+  if (!configuracionCompleta()) {
+    return false;
+  }
+
   Serial.println();
   Serial.print("Conectando al WiFi: ");
-  Serial.println(ssid);
+  Serial.println(wifiSsid);
 
   activarModoSeguro("modo_seguro_wifi_desconectado");
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(wifiSsid.c_str(), wifiPassword.c_str());
 
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long inicio = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - inicio < tiempoMaximoConexionWifiMs) {
     delay(500);
     Serial.print(".");
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println();
+    Serial.println("No se pudo conectar al WiFi configurado");
+    return false;
   }
 
   Serial.println();
   Serial.println("WiFi conectado correctamente");
   Serial.print("IP de la ESP32: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Broker MQTT: ");
+  Serial.print(mqttHost);
+  Serial.print(":");
+  Serial.println(mqttPort);
+  return true;
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -255,47 +426,61 @@ void callback(char* topic, byte* payload, unsigned int length) {
       aplicarPotenciaMotor(0);
       Serial.println("Comando recibido: Apagar motor en GPIO27");
       client.publish(topic_estado, "motor_off");
+    } else if (mensaje == "RESET_CONFIG") {
+      client.publish(topic_estado, "config_reset_restart");
+      delay(500);
+      borrarConfiguracion();
+      ESP.restart();
     } else {
       Serial.println("Comando no reconocido");
     }
   }
 }
 
-void conectarMQTT() {
-  while (!client.connected()) {
-    activarModoSeguro("modo_seguro_mqtt_desconectado");
-    Serial.print("Conectando a MQTT... ");
+void conectarMQTT(bool forzar = false) {
+  if (setupPortalActivo || WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+  if (!forzar && millis() - ultimoIntentoMqtt < intervaloReintentoMqttMs) {
+    return;
+  }
 
-    String clientId = "ESP32_Tinaco_";
-    clientId += String(random(0xffff), HEX);
+  ultimoIntentoMqtt = millis();
+  activarModoSeguro("modo_seguro_mqtt_desconectado");
+  Serial.print("Conectando a MQTT... ");
 
-    bool conectado = client.connect(
-      clientId.c_str(),
-      mqtt_user,
-      mqtt_password,
-      topic_estado,
-      0,
-      true,
-      "offline");
+  String clientId = "ESP32_Tinaco_";
+  clientId += String(random(0xffff), HEX);
 
-    if (conectado) {
-      Serial.println("conectado");
+  bool conectado = client.connect(
+    clientId.c_str(),
+    mqttUser.c_str(),
+    mqttPassword.c_str(),
+    topic_estado,
+    0,
+    true,
+    "offline");
 
-      client.publish(topic_estado, "online", true);
-      client.subscribe(topic_comando);
+  if (conectado) {
+    modoSeguroActivo = false;
+    Serial.println("conectado");
 
-      Serial.print("Suscrito a: ");
-      Serial.println(topic_comando);
-    } else {
-      Serial.print("fallo, rc=");
-      Serial.print(client.state());
-      Serial.println(" | Reintentando en 5 segundos");
-      delay(5000);
-    }
+    client.publish(topic_estado, "online", true);
+    client.subscribe(topic_comando);
+
+    Serial.print("Suscrito a: ");
+    Serial.println(topic_comando);
+  } else {
+    Serial.print("fallo, rc=");
+    Serial.println(client.state());
   }
 }
 
 void publicarLecturas() {
+  if (!client.connected()) {
+    return;
+  }
+
   float distancia = medirPromedioCm(5);
 
   if (distancia < 0) {
@@ -376,10 +561,7 @@ void publicarLecturas() {
   Serial.println(topic_nivel);
 }
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
-
+void configurarHardware() {
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_LED, OUTPUT);
@@ -392,9 +574,12 @@ void setup() {
   digitalWrite(PIN_TRIG, LOW);
   aplicarBrilloLed(0);
   aplicarPotenciaMotor(0);
+}
 
+void imprimirArranque() {
   Serial.println("ESP32 + Sensor ultrasonico + MQTT");
   Serial.println("---------------------------------");
+  Serial.println("Provisionamiento WiFi por AquaControl-Setup");
   Serial.println("PWM del LED configurado en GPIO26");
   Serial.println("Motor configurado en GPIO27");
   Serial.print("Distancia vacio: ");
@@ -403,24 +588,49 @@ void setup() {
   Serial.print("Distancia lleno: ");
   Serial.print(distanciaLleno);
   Serial.println(" cm");
+}
 
-  conectarWiFi();
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
 
-  client.setServer(mqtt_server, mqtt_port);
+  configurarHardware();
+  imprimirArranque();
+  cargarConfiguracion();
+
+  if (!configuracionCompleta()) {
+    iniciarPortalConfiguracion("sin_configuracion_guardada");
+    return;
+  }
+
+  if (!conectarWiFi()) {
+    iniciarPortalConfiguracion("wifi_configurado_no_disponible");
+    return;
+  }
+
+  client.setServer(mqttHost.c_str(), mqttPort);
   client.setCallback(callback);
-
-  conectarMQTT();
+  conectarMQTT(true);
 }
 
 void loop() {
+  if (setupPortalActivo) {
+    setupServer.handleClient();
+    delay(2);
+    return;
+  }
+
   if (WiFi.status() != WL_CONNECTED) {
     activarModoSeguro("modo_seguro_wifi_desconectado");
-    conectarWiFi();
+    if (!conectarWiFi()) {
+      iniciarPortalConfiguracion("wifi_desconectado_no_reconecta");
+    }
+    return;
   }
 
   if (!client.connected()) {
-    activarModoSeguro("modo_seguro_mqtt_desconectado");
     conectarMQTT();
+    return;
   }
 
   client.loop();

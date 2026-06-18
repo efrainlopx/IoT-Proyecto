@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 159 nodes · 256 edges · 15 communities (11 shown, 4 thin omitted)
+- 202 nodes · 332 edges · 19 communities (14 shown, 5 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a8d8a1c4`
+- Built from commit: `2c902d7e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -17,6 +17,7 @@
 - [[_COMMUNITY_Community 0|Community 0]]
 - [[_COMMUNITY_Community 1|Community 1]]
 - [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
 - [[_COMMUNITY_Community 4|Community 4]]
 - [[_COMMUNITY_Community 5|Community 5]]
 - [[_COMMUNITY_Community 6|Community 6]]
@@ -26,16 +27,19 @@
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `DashboardActivity` - 33 edges
-2. `String` - 14 edges
+1. `DashboardActivity` - 40 edges
+2. `String` - 19 edges
 3. `Prueba ESP32 con sensor ultrasonico e integracion MQTT` - 14 edges
 4. `AquaMqttClient` - 11 edges
 5. `String` - 11 edges
 6. `Arquitectura de prueba` - 11 edges
 7. `MainActivity` - 10 edges
-8. `AquaControl IoT` - 9 edges
+8. `AquaControl IoT` - 10 edges
 9. `AuthDatabaseHelper` - 8 edges
 10. `Listener` - 8 edges
 
@@ -46,23 +50,27 @@
 ## Import Cycles
 - None detected.
 
-## Communities (15 total, 4 thin omitted)
+## Communities (19 total, 5 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.23
 Nodes (7): Boolean, String, IMqttActionListener, AquaMqttClient, Listener, mqttActionListener(), MqttAsyncClient
 
 ### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (14): Activity, Boolean, Bundle, EditText, Float, Int, String, TextView (+6 more)
+Cohesion: 0.13
+Nodes (15): Activity, Boolean, Bundle, EditText, Float, Int, String, TextView (+7 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.20
 Nodes (9): android, Boolean, Bundle, EditText, String, TextView, MainActivity, AuthDatabaseHelper (+1 more)
 
+### Community 3 - "Community 3"
+Cohesion: 0.25
+Nodes (7): String, Callback, HttpURLConnection, Pair, Callback, EspProvisioningClient, EspProvisioningRequest
+
 ### Community 4 - "Community 4"
 Cohesion: 0.11
-Nodes (17): 1. Entrar a la carpeta del proyecto, 1. Prueba ESP32 con Raspberry Pi mediante MQTT, 2. Crear el usuario MQTT, 2. Prueba ESP32 con sensor ultrasonico, 3. Corregir permisos del archivo de contraseña, 3. Integracion ESP32 + sensor ultrasonico + MQTT, 4. Levantar el broker MQTT, 5. Verificar que el contenedor esté activo (+9 more)
+Nodes (18): 1. Entrar a la carpeta del proyecto, 1. Prueba ESP32 con Raspberry Pi mediante MQTT, 2. Crear el usuario MQTT, 2. Prueba ESP32 con sensor ultrasonico, 3. Corregir permisos del archivo de contraseña, 3. Integracion ESP32 + sensor ultrasonico + MQTT, 4. Levantar el broker MQTT, 5. Verificar que el contenedor esté activo (+10 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.21
@@ -80,24 +88,32 @@ Nodes (14): 10. Tópicos MQTT utilizados, 11. Comprobación final, 1. Conectar R
 Cohesion: 0.29
 Nodes (4): Float, Canvas, TankLevelView, View
 
+### Community 16 - "Community 16"
+Cohesion: 0.22
+Nodes (8): 1. Preparar Raspberry, 2. Cargar firmware al ESP32, 3. Primer arranque del ESP32, 4. Configurar ESP32 desde la app, 5. Operacion normal, 6. Borrar configuracion del ESP32, Estado actual de la Raspberry, Provisionamiento AquaControl: Raspberry, ESP32 y app
+
+### Community 17 - "Community 17"
+Cohesion: 0.29
+Nodes (4): String, EspProvisioningRequest, DeviceConfig, DeviceConfigStore
+
 ## Knowledge Gaps
-- **63 isolated node(s):** `EditText`, `RadioButton`, `TextView`, `TankLevelView`, `Button` (+58 more)
+- **76 isolated node(s):** `EditText`, `RadioButton`, `TextView`, `TankLevelView`, `Button` (+71 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `DashboardActivity` connect `Community 1` to `Community 0`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
 - **Why does `AquaMqttClient` connect `Community 0` to `Community 1`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **What connects `EditText`, `RadioButton`, `TextView` to the rest of the system?**
-  _63 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _76 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.14793741109530584 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.1111111111111111 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected._
 - **Should `Community 8` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
 - **Should `Community 12` be split into smaller, more focused modules?**

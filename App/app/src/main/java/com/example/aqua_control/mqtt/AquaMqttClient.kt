@@ -19,10 +19,14 @@ class AquaMqttClient(private val listener: Listener) {
     val isReady: Boolean
         get() = client?.isConnected == true
 
-    fun connect(hostInput: String) {
+    fun connect(
+        hostInput: String,
+        username: String = ProjectConfig.MQTT_USERNAME,
+        mqttPassword: String = ProjectConfig.MQTT_PASSWORD,
+    ) {
         val brokerUri = buildBrokerUri(hostInput)
         if (brokerUri == null) {
-            listener.onError("Ingresa la IP de la Raspberry Pi")
+            listener.onError("Ingresa el host o IP de la Raspberry Pi")
             return
         }
 
@@ -65,8 +69,11 @@ class AquaMqttClient(private val listener: Listener) {
         })
 
         val options = MqttConnectOptions().apply {
-            userName = ProjectConfig.MQTT_USERNAME
-            password = ProjectConfig.MQTT_PASSWORD.toCharArray()
+            val normalizedUser = username.trim()
+            if (normalizedUser.isNotBlank()) {
+                userName = normalizedUser
+                password = mqttPassword.toCharArray()
+            }
             isCleanSession = true
             isAutomaticReconnect = true
             connectionTimeout = 8

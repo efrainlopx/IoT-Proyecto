@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">Aqua-Control</string>
     <string name="login_default_hint">Usuario inicial: admin / admin123</string>
-    <string name="default_raspberry_ip">10.71.193.168</string>
-    <string name="default_hotspot_ssid">prueba</string>
+    <string name="default_raspberry_host">192.168.1.127</string>
+    <string name="default_raspberry_ip">192.168.1.127</string>
+    <string name="default_hotspot_ssid">AquaControl-Setup</string>
+    <string name="default_esp32_setup_host">192.168.4.1</string>
+    <string name="default_mqtt_user">IoTProyecto</string>
+    <string name="default_mqtt_password">HOLA</string>
 </resources>
