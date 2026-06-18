@@ -1,0 +1,15 @@
+flowchart LR
+    Android[Android app / Jetpack Compose] -->|MQTT tcp://IP:1883| Broker[Mosquitto broker on Raspberry Pi]
+    ESP32[ESP32 firmware] -->|publishes tinaco/distancia, tinaco/nivel, tinaco/estado| Broker
+    Android -->|publishes tinaco/comando ON/OFF| Broker
+    Broker -->|routes tinaco/comando| ESP32
+    Broker -->|routes telemetry| Android
+    ESP32 --> Sensor[Ultrasonic sensor GPIO5/GPIO18]
+    ESP32 --> LED[LED PWM GPIO26]
+    ESP32 --> Motor[Motor PWM GPIO27 + TIP120]
+    Compose[compose.yaml] --> Broker
+    MosquittoConf[mosquitto.conf] --> Broker
+    Manifest[AndroidManifest.xml] -->|INTERNET + cleartext TCP| Android
+    Docs[README + Docs + Notas] -.document.-> Android
+    Docs -.document.-> ESP32
+    Docs -.document.-> Broker

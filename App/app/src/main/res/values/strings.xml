@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Aqua-Control</string>
+    <string name="login_default_hint">Usuario inicial: admin / admin123</string>
+    <string name="default_raspberry_ip">10.71.193.168</string>
+    <string name="default_hotspot_ssid">prueba</string>
 </resources>

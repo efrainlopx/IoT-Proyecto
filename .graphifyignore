@@ -1,0 +1,8 @@
+# Graphify artifacts and local IDE/build noise
+graphify-out/
+tools/
+.idea/
+App/.idea/
+App/.gradle/
+App/build/
+App/app/build/
