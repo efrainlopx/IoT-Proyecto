@@ -26,6 +26,7 @@ const int PIN_TRIG = 5;
 const int PIN_ECHO = 18;
 const int PIN_LED = 26;
 const int PIN_MOTOR = 27;
+const int PIN_BOTON_SETUP = 0; // Boton BOOT en la mayoria de placas ESP32.
 
 // ==========================
 // MEDIDAS DEL TINACO SIMULADO
@@ -40,6 +41,8 @@ const unsigned long intervaloPublicacionMs = 3000;
 const unsigned long intervaloSerialLlenoMs = 60000;
 const unsigned long tiempoMaximoConexionWifiMs = 20000;
 const unsigned long intervaloReintentoMqttMs = 5000;
+const unsigned long tiempoPresionSetupMs = 2500;
+const int maxIntentosMqttFallidosSetup = 6;
 const int frecuenciaPwmLed = 5000;
 const int resolucionPwmLed = 8;
 const int brilloLedMaximo = 255;
@@ -73,6 +76,7 @@ int mqttPort = mqtt_port_default;
 unsigned long ultimoEnvio = 0;
 unsigned long ultimoReporteSerial = 0;
 unsigned long ultimoIntentoMqtt = 0;
+int intentosMqttFallidos = 0;
 bool setupPortalActivo = false;
 bool ultimoEstadoLlenoConLedApagado = false;
 bool modoSeguroActivo = false;
@@ -82,6 +86,7 @@ int potenciaMotorActual = 0;
 
 void aplicarPotenciaMotor(int potencia);
 void activarModoSeguro(const char* motivo);
+void iniciarPortalConfiguracion(const char* motivo);
 
 void cargarConfiguracion() {
   preferences.begin("aquacontrol", false);
@@ -137,6 +142,27 @@ void borrarConfiguracion() {
   mqttPort = mqtt_port_default;
   mqttUser = mqtt_user_default;
   mqttPassword = mqtt_password_default;
+}
+
+bool botonSetupPresionadoAlArrancar() {
+  if (digitalRead(PIN_BOTON_SETUP) != LOW) {
+    return false;
+  }
+
+  Serial.println("Boton BOOT detectado. Mantenlo presionado para borrar configuracion...");
+  unsigned long inicio = millis();
+
+  while (millis() - inicio < tiempoPresionSetupMs) {
+    if (digitalRead(PIN_BOTON_SETUP) != LOW) {
+      Serial.println("BOOT liberado antes de tiempo. Se conserva la configuracion.");
+      return false;
+    }
+    delay(50);
+  }
+
+  Serial.println("Configuracion borrada por boton BOOT.");
+  borrarConfiguracion();
+  return true;
 }
 
 void responderPortalInicio() {
@@ -463,6 +489,7 @@ void conectarMQTT(bool forzar = false) {
 
   if (conectado) {
     modoSeguroActivo = false;
+    intentosMqttFallidos = 0;
     Serial.println("conectado");
 
     client.publish(topic_estado, "online", true);
@@ -471,8 +498,14 @@ void conectarMQTT(bool forzar = false) {
     Serial.print("Suscrito a: ");
     Serial.println(topic_comando);
   } else {
+    intentosMqttFallidos++;
     Serial.print("fallo, rc=");
     Serial.println(client.state());
+
+    if (intentosMqttFallidos >= maxIntentosMqttFallidosSetup) {
+      Serial.println("MQTT no conecta. Abriendo portal para reconfigurar broker.");
+      iniciarPortalConfiguracion("mqtt_no_conecta_reconfigurar_broker");
+    }
   }
 }
 
@@ -566,6 +599,7 @@ void configurarHardware() {
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_MOTOR, OUTPUT);
+  pinMode(PIN_BOTON_SETUP, INPUT_PULLUP);
   analogWriteResolution(PIN_LED, resolucionPwmLed);
   analogWriteFrequency(PIN_LED, frecuenciaPwmLed);
   analogWriteResolution(PIN_MOTOR, resolucionPwmMotor);
@@ -597,6 +631,11 @@ void setup() {
   configurarHardware();
   imprimirArranque();
   cargarConfiguracion();
+
+  if (botonSetupPresionadoAlArrancar()) {
+    iniciarPortalConfiguracion("configuracion_borrada_por_boton_boot");
+    return;
+  }
 
   if (!configuracionCompleta()) {
     iniciarPortalConfiguracion("sin_configuracion_guardada");

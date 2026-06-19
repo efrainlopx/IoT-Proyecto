@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1781762336.16487,
-    "ast_hash": "1bc3643874d04417b913abc05fc895c2",
+    "mtime": 1781847262.0968988,
+    "ast_hash": "1ad22c27825e05951f3398f794226a24",
     "semantic_hash": ""
   },
   "App/app/src/main/java/com/example/aqua_control/provisioning/DeviceConfigStore.kt": {
@@ -90,13 +90,13 @@
     "semantic_hash": ""
   },
   "Raspberry/setup_raspberry_mqtt.sh": {
-    "mtime": 1781762326.4611924,
-    "ast_hash": "0ede032c2954f1da2908ac990dc06951",
+    "mtime": 1781763082.5574422,
+    "ast_hash": "57f85f6a99e5bb08598f9e220d5e2ff8",
     "semantic_hash": ""
   },
   "Docs/provisionamiento_app_esp32_raspberry.md": {
-    "mtime": 1781762326.4632442,
-    "ast_hash": "8f9ca67e2b2afb489209fb263e7fad3d",
+    "mtime": 1781847284.3018906,
+    "ast_hash": "47cd82bb559bf9e90a1e350318995256",
     "semantic_hash": ""
   },
   "Notas/Bitacora_Raspberry_MQTT.txt": {

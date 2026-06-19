@@ -1,348 +1,510 @@
 # AquaControl IoT
 
-Sistema IoT para el monitoreo y control del llenado de tinacos mediante una aplicación móvil.
+AquaControl IoT es un prototipo para monitorear el nivel de agua de un tinaco y controlar una bomba mediante una app Android, una ESP32 y un broker MQTT ejecutado en Raspberry Pi.
 
-## Descripción
+El sistema mide la distancia con un sensor ultrasonico, calcula el porcentaje de llenado, publica los datos por MQTT y permite controlar el motor en modo automatico o manual desde la app.
 
-El proyecto propone un prototipo capaz de medir el nivel de agua de un recipiente que representa un tinaco y controlar un motor pequeño que simula una bomba de agua.
-
-La comunicación entre los dispositivos se realizará mediante MQTT. Una Raspberry Pi 4 con Ubuntu 22.04 ejecutará un contenedor Docker con Eclipse Mosquitto, el cual funcionará como broker central de mensajes.
-
-## Tecnologías consideradas
-
-* Raspberry Pi 4 con Ubuntu 22.04.
-* Docker y Docker Compose.
-* Eclipse Mosquitto como broker MQTT.
-* ESP32 programada en C++ mediante Arduino IDE.
-* Sensor ultrasónico para medir el nivel de agua.
-* Motor pequeño para simular una bomba.
-* Aplicación móvil desarrollada en Kotlin con Java 21.0.10.
-
-## Arquitectura inicial
+## Arquitectura
 
 ```text
-Aplicación móvil Kotlin
-        │
-        │ MQTT / Wi-Fi
-        ▼
+App Android
+  - Login local
+  - Configuracion ESP32
+  - Visualizacion del tinaco
+  - Control automatico/manual
+        |
+        | MQTT por WiFi
+        v
 Raspberry Pi 4
-Docker + Eclipse Mosquitto
-        ▲
-        │ MQTT / Wi-Fi
-        │
-ESP32 + Sensor ultrasónico + Motor
+  - Ubuntu 22.04
+  - Docker Compose
+  - Eclipse Mosquitto
+        ^
+        | MQTT por WiFi
+        |
+ESP32
+  - Sensor ultrasonico
+  - LED PWM indicador
+  - Motor por PWM
+  - Portal de configuracion WiFi/MQTT
 ```
 
-## Servicio incluido actualmente
+La Raspberry funciona como broker central. La app y la ESP32 deben estar en la misma red WiFi que la Raspberry o tener acceso a su IP.
 
-En esta etapa, el repositorio contiene la configuración necesaria para ejecutar el broker MQTT Mosquitto mediante Docker Compose.
+## Componentes
 
-## Provisionamiento recomendado
+- Raspberry Pi 4 con Ubuntu 22.04.
+- Docker y Docker Compose.
+- Eclipse Mosquitto como broker MQTT.
+- ESP32 programada con Arduino IDE.
+- Sensor ultrasonico HC-SR04 o equivalente.
+- Motor DC para simular bomba.
+- TIP120 o modulo de control para motor.
+- App Android en Kotlin con interfaz XML.
 
-El flujo actual evita dejar el WiFi fijo dentro del firmware del ESP32.
-
-En primer arranque, el ESP32 crea una red temporal:
+## Estructura Del Proyecto
 
 ```text
-SSID: AquaControl-Setup
-Password: aquapi123
-IP: 192.168.4.1
+App/                         Proyecto Android
+Docs/                        Documentacion de pruebas y provisionamiento
+ESP32/                       Firmware y pruebas ESP32
+Raspberry/                   Script de preparacion para Raspberry
+mosquitto/                   Configuracion Docker de Mosquitto
+compose.yaml                 Servicio Mosquitto
+Dockerfile / Gradle / XML    Recursos y configuracion de la app
 ```
 
-Desde la app Android se envia al ESP32:
-
-- SSID del WiFi real.
-- Contrasena del WiFi.
-- Host/IP de la Raspberry o broker MQTT.
-- Usuario y contrasena MQTT.
-
-La Raspberry puede usarse por IP, por ejemplo:
+Archivos principales:
 
 ```text
-192.168.1.127
-```
-
-O por nombre local si Avahi/mDNS esta disponible:
-
-```text
-aqua-pi.local
-```
-
-Guia completa:
-
-```text
+App/app/src/main/java/com/example/aqua_control/DashboardActivity.kt
+App/app/src/main/java/com/example/aqua_control/provisioning/EspProvisioningClient.kt
+ESP32/ESP32_Prueba_Sensor_Ultrasonico/Sensor_Ultrasonico_ESP32/Sensor_Ultrasonico_ESP32.ino
+Raspberry/setup_raspberry_mqtt.sh
 Docs/provisionamiento_app_esp32_raspberry.md
 ```
 
-Script de preparacion para Raspberry:
+## Broker MQTT En Raspberry
 
-```text
-Raspberry/setup_raspberry_mqtt.sh
-```
+Mosquitto corre dentro del contenedor `aquacontrol-mqtt`.
 
-## Ejecución
-
-Crear localmente el archivo de credenciales MQTT:
-
-```bash
-docker run --rm -it \
-  -v "$PWD/mosquitto/config:/mosquitto/config" \
-  eclipse-mosquitto:2 \
-  mosquitto_passwd -c /mosquitto/config/password.txt aquacontrol
-```
-
-Levantar el contenedor:
+Levantar el broker:
 
 ```bash
 docker compose up -d
 ```
 
-Verificar el servicio:
+Verificar estado:
 
 ```bash
 docker compose ps
-docker compose logs mosquitto
+docker compose logs -f mosquitto
 ```
 
-Detener el servicio:
+Detener el broker:
 
 ```bash
 docker compose down
 ```
 
-## Seguridad
+La configuracion usada por Mosquitto esta en:
 
-El archivo `mosquitto/config/password.txt` no se incluye en el repositorio, ya que contiene las credenciales necesarias para conectarse al broker MQTT.
+```text
+mosquitto/config/mosquitto.conf
+```
 
-## Configuración local de credenciales MQTT
+El archivo de contrasenas MQTT se mantiene fuera de Git:
 
-Por seguridad, el archivo `mosquitto/config/password.txt` no se incluye en el repositorio de GitHub, ya que contiene las credenciales del broker MQTT.
+```text
+mosquitto/config/password.txt
+```
 
-Después de clonar el proyecto en otra computadora o en la Raspberry Pi, se debe crear localmente el usuario y la contraseña MQTT.
+## Preparar Raspberry
 
-### 1. Entrar a la carpeta del proyecto
+En la Raspberry, dentro del proyecto:
 
 ```bash
-cd IoT-Proyecto.
+cd ~/IoT-Proyecto
+chmod +x Raspberry/setup_raspberry_mqtt.sh
+HOSTNAME_TARGET=aqua-pi MQTT_USER=IoTProyecto MQTT_PASSWORD=HOLA ./Raspberry/setup_raspberry_mqtt.sh
 ```
-### 2. Crear el usuario MQTT
+
+El script realiza estas acciones:
+
+- Configura el hostname, por ejemplo `aqua-pi`.
+- Instala dependencias base disponibles.
+- Activa Docker y Avahi.
+- Crea el usuario MQTT si no existe.
+- Ajusta permisos de `password.txt`.
+- Levanta Mosquitto con Docker Compose.
+- Ejecuta una publicacion MQTT local de prueba.
+
+Para conocer la IP de la Raspberry:
+
+```bash
+hostname -I
+ip a
+```
+
+Ejemplos de IP:
+
+```text
+192.168.1.127  Ethernet
+192.168.1.130  WiFi
+```
+
+En la app y en el ESP32 se debe usar la IP que corresponda a la interfaz activa.
+
+## Credenciales MQTT
+
+Para el prototipo se usan estas credenciales:
+
+```text
+Usuario: IoTProyecto
+Contrasena: HOLA
+Puerto: 1883
+```
+
+Si se necesita crear el usuario manualmente:
+
 ```bash
 docker run --rm -it \
   -v "$PWD/mosquitto/config:/mosquitto/config" \
   eclipse-mosquitto:2 \
   mosquitto_passwd -c /mosquitto/config/password.txt IoTProyecto
 ```
-El comando solicitará escribir y confirmar una contraseña para el usuario:
 
-IoTProyecto
+Corregir permisos:
 
-### 3. Corregir permisos del archivo de contraseña
 ```bash
 sudo chown 1883:1883 mosquitto/config/password.txt
 sudo chmod 600 mosquitto/config/password.txt
 ```
 
-Estos permisos permiten que el contenedor de Mosquitto lea el archivo password.txt sin exponerlo innecesariamente
+## Topicos MQTT
 
-### 4. Levantar el broker MQTT
-```bash
-docker compose up -d
-```
+| Topico | Direccion | Funcion |
+| :--- | :--- | :--- |
+| `tinaco/estado` | ESP32 -> App | Estado de conexion, motor o modo seguro |
+| `tinaco/distancia` | ESP32 -> App | Distancia medida por el sensor en centimetros |
+| `tinaco/nivel` | ESP32 -> App | Nivel calculado del tinaco en porcentaje |
+| `tinaco/comando` | App -> ESP32 | Comandos para motor o configuracion |
 
-### 5. Verificar que el contenedor esté activo
-```bash
-docker compose ps
-```
-
-El contenedor debe aparecer con estado Up:
-
-```text
-aquacontrol-mqtt   eclipse-mosquitto:2   Up   0.0.0.0:1883->1883/tcp
-```
-
-## Avances de pruebas realizadas
-
-### 1. Prueba ESP32 con Raspberry Pi mediante MQTT
-
-Primero se realizo una prueba de comunicacion entre la ESP32 y la Raspberry Pi usando Mosquitto como broker MQTT.
-
-En esta prueba:
-
-- La Raspberry Pi ejecuto Mosquitto dentro del contenedor Docker `aquacontrol-mqtt`.
-- La ESP32 se conecto al mismo hotspot Wi-Fi que la Raspberry Pi.
-- La ESP32 publico mensajes hacia la Raspberry mediante MQTT.
-- La Raspberry pudo recibir los mensajes publicados por la ESP32.
-- Tambien se probaron comandos enviados desde Raspberry hacia la ESP32 usando el topico `tinaco/comando`.
-
-Los topicos principales usados en esta etapa fueron:
-
-| Topico | Funcion |
-| :--- | :--- |
-| `tinaco/estado` | Estado de conexion de la ESP32 |
-| `tinaco/nivel` | Nivel simulado publicado por la ESP32 |
-| `tinaco/comando` | Comandos `ON` y `OFF` enviados hacia la ESP32 |
-
-La documentacion completa de esta prueba esta en:
-
-```text
-Docs/prueba_esp32_raspberry_mqtt.md
-```
-
-El codigo usado para esta prueba esta en:
-
-```text
-ESP32/prueba_mqtt_esp32/prueba_mqtt_esp32.ino
-```
-
-### 2. Prueba ESP32 con sensor ultrasonico
-
-Despues se hizo una prueba local usando solo la ESP32 y el sensor ultrasonico.
-
-En esta etapa no se uso MQTT. El objetivo fue comprobar primero que el sensor estuviera bien conectado y que la ESP32 pudiera leer la distancia correctamente.
-
-La prueba mostro las mediciones en el Monitor Serial del Arduino IDE a `115200` baudios.
-
-Se valido un rango aproximado de:
-
-```text
-2.5 cm a 30 cm
-```
-
-Esta prueba fue exitosa porque el Monitor Serial mostro las lecturas reales en centimetros.
-
-### 3. Integracion ESP32 + sensor ultrasonico + MQTT
-
-Una vez confirmado que el sensor funcionaba correctamente, se integro con la comunicacion MQTT.
-
-En esta version:
-
-- La ESP32 mide distancia con el sensor ultrasonico.
-- Calcula el nivel del tinaco simulado en porcentaje.
-- Ajusta el brillo de un LED en `GPIO26` mediante PWM segun la distancia medida.
-- Controla un motor en `GPIO27` mediante TIP120 y PWM.
-- Publica la distancia y el nivel hacia Mosquitto en la Raspberry Pi.
-- Sigue escuchando comandos `ON` y `OFF` desde `tinaco/comando`.
-- Reduce los mensajes del Monitor Serial cuando el tinaco esta lleno y el LED esta apagado.
-
-El calculo del nivel usa dos medidas base:
-
-```text
-distanciaVacio = 30 cm
-distanciaLleno = 5 cm
-```
-
-Formula usada:
-
-```text
-nivel = ((distanciaVacio - distanciaActual) / (distanciaVacio - distanciaLleno)) * 100
-```
-
-Los topicos MQTT usados en la integracion son:
-
-| Topico | Funcion |
-| :--- | :--- |
-| `tinaco/distancia` | Distancia medida por el sensor, en cm |
-| `tinaco/nivel` | Nivel calculado del tinaco, en porcentaje |
-| `tinaco/estado` | Estado de conexion, sensor, LED o motor |
-| `tinaco/comando` | Comandos enviados hacia la ESP32 |
-
-El LED en `GPIO26` funciona como indicador visual:
-
-- Con distancia de lleno, el LED se apaga.
-- Al aumentar la distancia, el brillo sube gradualmente.
-- Con distancia de vacio, el LED llega a brillo maximo.
-
-Los comandos MQTT tienen esta funcion:
+Comandos soportados:
 
 | Comando | Funcion |
 | :--- | :--- |
-| `ON` | Activa el control automatico del motor por PWM |
-| `OFF` | Apaga el motor y desactiva el control automatico |
+| `ON` | Activa el control del motor |
+| `OFF` | Apaga el motor |
+| `RESET_CONFIG` | Borra la configuracion WiFi/MQTT guardada en la ESP32 |
 
-El modulo del motor quedo conectado asi:
+## Firmware ESP32
 
-```text
-ESP32 GPIO27 -> resistencia 470 ohms -> Base TIP120
-Colector TIP120 -> negativo del motor
-Emisor TIP120 -> GND
-Positivo del motor -> +5V externo
-Diodo: catodo a +5V, anodo al colector TIP120
-GND fuente 5V externa -> GND ESP32
-```
-
-Datos principales del codigo del motor:
-
-```cpp
-const int PIN_MOTOR = 27;
-const int frecuenciaPwmMotor = 5000;
-const int resolucionPwmMotor = 8;
-const int potenciaMotorMaxima = 255;
-const int potenciaMotorMinimaGiro = 45;
-const int potenciaMotorArranque = 140;
-const unsigned long duracionPulsoArranqueMotorMs = 300;
-```
-
-Se agrego un pulso de arranque para que el motor pueda comenzar a girar aunque el PWM calculado sea bajo. Si el motor esta apagado y debe arrancar con poca potencia, primero recibe un pulso de `140/255` durante `300 ms` y despues baja al PWM calculado.
-
-Modulos de seguridad agregados:
-
-| Condicion | Accion de seguridad |
-| :--- | :--- |
-| Sensor sin lectura | Apaga el motor y publica estado de modo seguro |
-| Distancia fuera de rango | Apaga el motor y evita usar esa lectura para controlar el motor |
-| Perdida de Wi-Fi | Apaga el motor mientras intenta reconectar |
-| Perdida de MQTT | Apaga el motor mientras intenta reconectar al broker |
-| Nivel `>= 100%` | Mantiene el motor apagado |
-| Nivel `<= 20%` | Usa PWM alto/maximo cuando el modo automatico esta activo |
-
-Los estados de seguridad se publican en `tinaco/estado` cuando la conexion MQTT esta disponible. En el codigo se usa una funcion de modo seguro para apagar el motor y desactivar el control automatico:
-
-```cpp
-activarModoSeguro("motivo");
-```
-
-El umbral configurado para activar potencia alta por nivel bajo es:
-
-```cpp
-const float nivelMinimoMotorAlto = 20.0;
-```
-
-Para escuchar los datos desde la Raspberry Pi se uso:
-
-```bash
-docker exec -it aquacontrol-mqtt mosquitto_sub \
-  -h localhost \
-  -p 1883 \
-  -u IoTProyecto \
-  -P "CONTRASEÑA_MOSQUITTO" \
-  -t "tinaco/#" \
-  -v
-```
-
-Para apagar el motor desde la Raspberry Pi durante la prueba se uso:
-
-```bash
-docker exec -it aquacontrol-mqtt mosquitto_pub \
-  -h localhost \
-  -p 1883 \
-  -u IoTProyecto \
-  -P "HOLA" \
-  -t "tinaco/comando" \
-  -m "OFF"
-```
-
-La documentacion completa de esta etapa esta en:
-
-```text
-Docs/prueba_esp32_ultrasonico_mqtt.md
-```
-
-El firmware actual que se debe abrir en Arduino IDE esta en:
+Firmware actual:
 
 ```text
 ESP32/ESP32_Prueba_Sensor_Ultrasonico/Sensor_Ultrasonico_ESP32/Sensor_Ultrasonico_ESP32.ino
 ```
 
-Ese sketch ya incluye portal de configuracion `AquaControl-Setup`, guarda WiFi/MQTT en memoria flash y conserva la lectura del sensor ultrasonico, LED, motor y topicos MQTT.
+Librerias necesarias en Arduino IDE:
 
-El sketch `ESP32/prueba_mqtt_esp32/prueba_mqtt_esp32.ino` queda solo como prueba historica de comunicacion MQTT con datos fijos.
+- `PubSubClient`.
+- `WiFi`, `WebServer` y `Preferences`, incluidas con el core de ESP32.
+
+El firmware incluye:
+
+- Lectura de sensor ultrasonico.
+- Calculo de nivel de tinaco.
+- Publicacion MQTT de distancia, nivel y estado.
+- Suscripcion a comandos MQTT.
+- Control PWM de LED indicador en `GPIO26`.
+- Control PWM de motor en `GPIO27`.
+- Modo seguro ante fallas de WiFi, MQTT, sensor o distancia fuera de rango.
+- Portal de configuracion WiFi/MQTT.
+- Persistencia de configuracion en memoria flash con `Preferences`.
+
+### Pines Usados
+
+| Pin | Funcion |
+| :--- | :--- |
+| `GPIO5` | Trigger sensor ultrasonico |
+| `GPIO18` | Echo sensor ultrasonico |
+| `GPIO26` | LED PWM indicador |
+| `GPIO27` | Motor PWM |
+| `GPIO0` | Boton `BOOT` para borrar configuracion al arrancar |
+
+### Calculo Del Nivel
+
+Medidas base del prototipo:
+
+```cpp
+const float distanciaVacio = 30.0;
+const float distanciaLleno = 5.0;
+```
+
+Formula:
+
+```text
+nivel = ((distanciaVacio - distanciaActual) / (distanciaVacio - distanciaLleno)) * 100
+```
+
+El resultado se limita entre `0%` y `100%`.
+
+## Provisionamiento ESP32 Desde La App
+
+El WiFi y la IP del broker no estan fijos en el firmware. La ESP32 se configura desde la app.
+
+Si no tiene configuracion guardada, la ESP32 crea una red temporal:
+
+```text
+SSID: AquaControl-Setup
+Password: aquapi123
+Portal: 192.168.4.1
+```
+
+Flujo:
+
+1. Energizar ESP32.
+2. Conectar el celular a `AquaControl-Setup`.
+3. Abrir la app.
+4. Enviar SSID, contrasena WiFi, IP del broker y credenciales MQTT.
+5. La ESP32 guarda los datos y se reinicia.
+6. La ESP32 se conecta automaticamente al WiFi real y al broker MQTT.
+
+Campos en la app:
+
+```text
+Host del portal ESP32: 192.168.4.1
+WiFi al que se conectara el ESP32: <SSID de la red>
+Contrasena WiFi: <contrasena de la red>
+Host/IP Raspberry o broker: <IP de la Raspberry>
+Usuario MQTT: IoTProyecto
+Contrasena MQTT: HOLA
+```
+
+Ejemplo con Raspberry por WiFi:
+
+```text
+Host/IP Raspberry o broker: 192.168.1.130
+```
+
+Ejemplo con Raspberry por Ethernet:
+
+```text
+Host/IP Raspberry o broker: 192.168.1.127
+```
+
+## Recuperacion Del ESP32
+
+Si cambia la IP del broker, el ESP32 puede conservar una IP anterior. Hay tres formas de recuperar la configuracion.
+
+### Desde La App
+
+Con MQTT conectado, pulsar:
+
+```text
+Borrar WiFi guardado del ESP32
+```
+
+Esto envia:
+
+```text
+RESET_CONFIG
+```
+
+La ESP32 borra su configuracion y vuelve a crear `AquaControl-Setup`.
+
+### Desde El Portal
+
+Si el celular esta conectado a `AquaControl-Setup`:
+
+```bash
+curl -X POST http://192.168.4.1/reset
+```
+
+### Con Boton BOOT
+
+1. Desconectar la ESP32.
+2. Mantener presionado `BOOT`.
+3. Conectar energia o presionar `EN/RST`.
+4. Mantener `BOOT` aproximadamente `2.5` segundos.
+5. Soltar cuando el Monitor Serial indique que borro la configuracion.
+
+El Monitor Serial debe mostrar:
+
+```text
+Configuracion borrada por boton BOOT.
+Portal de configuracion activo
+SSID setup: AquaControl-Setup
+IP setup: 192.168.4.1
+```
+
+Ademas, si MQTT falla varias veces, el firmware abre automaticamente `AquaControl-Setup` para permitir reconfigurar el broker.
+
+## App Android
+
+La app esta desarrollada en Kotlin usando vistas XML.
+
+Funciones principales:
+
+- Login local con SQLite.
+- Usuario inicial `admin / admin123`.
+- Creacion de usuarios locales.
+- Configuracion de broker MQTT.
+- Configuracion inicial de ESP32 por HTTP.
+- Visualizacion del tinaco con una vista personalizada.
+- Lectura de nivel y distancia desde MQTT.
+- Modo automatico.
+- Modo manual.
+- Boton para borrar configuracion guardada del ESP32.
+
+### Conexion MQTT En La App
+
+Despues de configurar la ESP32 y volver al WiFi normal, llenar:
+
+```text
+Host/IP Raspberry o broker: <IP de la Raspberry>
+Red WiFi de trabajo: <SSID de la red>
+```
+
+Luego pulsar:
+
+```text
+Conectar
+```
+
+Cuando funciona, la app muestra:
+
+```text
+MQTT listo
+Ultimo MQTT: Suscrito a tinaco/#
+```
+
+## Modos De Control
+
+### Automatico
+
+La app activa el motor cuando el nivel del tinaco baja al umbral configurado.
+
+Valor por defecto:
+
+```text
+30%
+```
+
+El motor se apaga cuando el tinaco llega a `100%`.
+
+### Manual
+
+El usuario puede encender el motor desde la app con `Motor ON` y apagarlo con `Motor OFF`.
+
+Aunque este en modo manual, la app manda apagar el motor cuando el nivel llega a `100%`.
+
+## Seguridad Del Sistema
+
+| Condicion | Accion |
+| :--- | :--- |
+| Sensor sin lectura | Apaga motor y publica modo seguro |
+| Distancia fuera de rango | Apaga motor y publica estado |
+| WiFi desconectado | Apaga motor mientras reconecta |
+| MQTT desconectado | Apaga motor mientras reconecta |
+| Tinaco lleno | Apaga motor |
+| Broker no disponible | Abre portal de configuracion despues de varios fallos |
+
+## Verificacion MQTT
+
+Escuchar todos los mensajes desde la Raspberry:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_sub \
+  -h localhost \
+  -u IoTProyecto \
+  -P HOLA \
+  -t 'tinaco/#' \
+  -v
+```
+
+Mensajes esperados:
+
+```text
+tinaco/estado online
+tinaco/nivel 75.0
+tinaco/distancia 12.34
+```
+
+Publicar comandos manualmente:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -u IoTProyecto \
+  -P HOLA \
+  -t tinaco/comando \
+  -m ON
+```
+
+Apagar motor:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -u IoTProyecto \
+  -P HOLA \
+  -t tinaco/comando \
+  -m OFF
+```
+
+Borrar configuracion ESP32:
+
+```bash
+docker exec -it aquacontrol-mqtt mosquitto_pub \
+  -h localhost \
+  -u IoTProyecto \
+  -P HOLA \
+  -t tinaco/comando \
+  -m RESET_CONFIG
+```
+
+## Graphify
+
+El proyecto incluye salida de Graphify para visualizar relaciones entre app, firmware, documentacion, XML y configuracion de infraestructura.
+
+Archivos principales:
+
+```text
+graphify-out/graph.json
+graphify-out/graph.html
+graphify-out/graph_enriched.json
+graphify-out/graph_enriched.svg
+graphify-out/GRAPH_REPORT.md
+graphify-out/GRAPH_REPORT_ENRICHED.md
+```
+
+Regenerar grafo:
+
+```bash
+graphify update . --force
+graphify cluster-only . --graph graphify-out/graph.json --no-label
+python3 tools/build_enriched_graph.py
+```
+
+## Flujo De Uso Completo
+
+1. Levantar Mosquitto en la Raspberry:
+
+```bash
+cd ~/IoT-Proyecto
+docker compose up -d
+```
+
+2. Energizar la ESP32.
+
+3. Si es primer arranque, configurar desde `AquaControl-Setup`.
+
+4. Conectar el celular a la red WiFi normal.
+
+5. Abrir la app y entrar con:
+
+```text
+admin / admin123
+```
+
+6. Conectar MQTT usando la IP activa de la Raspberry.
+
+7. Verificar que la app muestre:
+
+```text
+MQTT listo
+ESP32: online
+Nivel y distancia del tinaco
+```
+
+8. Usar modo automatico o manual para controlar el motor.
+
+## Documentacion Adicional
+
+```text
+Docs/provisionamiento_app_esp32_raspberry.md
+Docs/prueba_esp32_raspberry_mqtt.md
+Docs/prueba_esp32_ultrasonico_mqtt.md
+```

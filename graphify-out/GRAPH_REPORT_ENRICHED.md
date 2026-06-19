@@ -1,9 +1,9 @@
 # Enriched Graph Report - AquaControl IoT
 
 ## Summary
-- Base Graphify graph: 202 nodes, 332 links.
-- Enriched graph: 440 nodes, 684 links.
-- Added: 238 nodes, 352 links.
+- Base Graphify graph: 211 nodes, 341 links.
+- Enriched graph: 464 nodes, 710 links.
+- Added: 253 nodes, 369 links.
 - Outputs:
   - `graphify-out/graph_enriched.json`
   - `graphify-out/graph_enriched.dot`
@@ -73,17 +73,18 @@
 - `android_network_policy`: 1
 - `android_permission`: 1
 - `android_resource`: 37
+- `code`: 2
 - `component`: 10
 - `config`: 4
-- `doc_section`: 69
+- `doc_section`: 78
 - `docker_image`: 1
 - `docker_service`: 1
 - `docker_volume`: 3
 - `firmware`: 2
-- `firmware_function`: 33
+- `firmware_function`: 34
 - `firmware_safety_state`: 4
-- `gpio_pin`: 4
-- `markdown`: 4
+- `gpio_pin`: 5
+- `markdown`: 6
 - `mosquitto_setting`: 6
 - `mqtt_command`: 2
 - `mqtt_endpoint`: 1
@@ -113,17 +114,17 @@
 
 ## Top Relations
 - `calls`: 100
+- `contains`: 90
 - `references`: 82
-- `contains`: 81
-- `contains_section`: 69
+- `contains_section`: 78
 - `method`: 66
 - `references_resource`: 48
-- `documents_component`: 36
-- `contains_function`: 33
+- `documents_component`: 37
+- `contains_function`: 34
 - `has_root`: 21
 - `declares_resource`: 21
+- `references_file`: 17
 - `mentions_topic`: 17
-- `references_file`: 12
 - `publishes`: 11
 - `mentions_command`: 8
 - `defines_topic_constant`: 7

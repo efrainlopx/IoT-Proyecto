@@ -148,3 +148,26 @@ Si MQTT no esta disponible, desde una terminal conectada a `AquaControl-Setup` t
 ```bash
 curl -X POST http://192.168.4.1/reset
 ```
+
+## 7. Recuperacion si cambio la IP del broker
+
+Si el ESP32 quedo guardado con una IP vieja del broker, por ejemplo `192.168.1.127`, y despues la Raspberry queda disponible con otra IP, el ESP32 puede conectarse al WiFi pero fallar en MQTT.
+
+El firmware actual abre `AquaControl-Setup` automaticamente despues de varios intentos fallidos de MQTT. En el Monitor Serial se vera:
+
+```text
+MQTT no conecta. Abriendo portal para reconfigurar broker.
+Portal de configuracion activo
+SSID setup: AquaControl-Setup
+IP setup: 192.168.4.1
+```
+
+Tambien se puede forzar manualmente:
+
+1. Desconectar energia del ESP32.
+2. Mantener presionado el boton `BOOT`.
+3. Conectar energia o presionar `EN/RST`.
+4. Mantener `BOOT` presionado por 2.5 segundos.
+5. Soltar cuando el Monitor Serial indique que borro la configuracion.
+
+Despues, conectar el celular a `AquaControl-Setup` y enviar de nuevo la configuracion desde la app usando la IP actual del broker.

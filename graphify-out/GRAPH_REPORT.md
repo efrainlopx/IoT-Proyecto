@@ -1,15 +1,15 @@
-# Graph Report - .  (2026-06-17)
+# Graph Report - .  (2026-06-18)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 202 nodes · 332 edges · 19 communities (14 shown, 5 thin omitted)
+- 211 nodes · 341 edges · 19 communities (14 shown, 5 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2c902d7e`
+- Built from commit: `635c9085`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,14 +34,14 @@
 ## God Nodes (most connected - your core abstractions)
 1. `DashboardActivity` - 40 edges
 2. `String` - 19 edges
-3. `Prueba ESP32 con sensor ultrasonico e integracion MQTT` - 14 edges
-4. `AquaMqttClient` - 11 edges
-5. `String` - 11 edges
-6. `Arquitectura de prueba` - 11 edges
-7. `MainActivity` - 10 edges
-8. `AquaControl IoT` - 10 edges
-9. `AuthDatabaseHelper` - 8 edges
-10. `Listener` - 8 edges
+3. `AquaControl IoT` - 18 edges
+4. `Prueba ESP32 con sensor ultrasonico e integracion MQTT` - 14 edges
+5. `AquaMqttClient` - 11 edges
+6. `String` - 11 edges
+7. `Arquitectura de prueba` - 11 edges
+8. `MainActivity` - 10 edges
+9. `Provisionamiento AquaControl: Raspberry, ESP32 y app` - 9 edges
+10. `AuthDatabaseHelper` - 8 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `DashboardActivity` --references--> `AquaMqttClient`  [EXTRACTED]
@@ -69,8 +69,8 @@ Cohesion: 0.25
 Nodes (7): String, Callback, HttpURLConnection, Pair, Callback, EspProvisioningClient, EspProvisioningRequest
 
 ### Community 4 - "Community 4"
-Cohesion: 0.11
-Nodes (18): 1. Entrar a la carpeta del proyecto, 1. Prueba ESP32 con Raspberry Pi mediante MQTT, 2. Crear el usuario MQTT, 2. Prueba ESP32 con sensor ultrasonico, 3. Corregir permisos del archivo de contraseña, 3. Integracion ESP32 + sensor ultrasonico + MQTT, 4. Levantar el broker MQTT, 5. Verificar que el contenedor esté activo (+10 more)
+Cohesion: 0.07
+Nodes (26): App Android, AquaControl IoT, Arquitectura, Automatico, Broker MQTT En Raspberry, Calculo Del Nivel, Componentes, Con Boton BOOT (+18 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.21
@@ -89,15 +89,15 @@ Cohesion: 0.29
 Nodes (4): Float, Canvas, TankLevelView, View
 
 ### Community 16 - "Community 16"
-Cohesion: 0.22
-Nodes (8): 1. Preparar Raspberry, 2. Cargar firmware al ESP32, 3. Primer arranque del ESP32, 4. Configurar ESP32 desde la app, 5. Operacion normal, 6. Borrar configuracion del ESP32, Estado actual de la Raspberry, Provisionamiento AquaControl: Raspberry, ESP32 y app
+Cohesion: 0.20
+Nodes (9): 1. Preparar Raspberry, 2. Cargar firmware al ESP32, 3. Primer arranque del ESP32, 4. Configurar ESP32 desde la app, 5. Operacion normal, 6. Borrar configuracion del ESP32, 7. Recuperacion si cambio la IP del broker, Estado actual de la Raspberry (+1 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.29
 Nodes (4): String, EspProvisioningRequest, DeviceConfig, DeviceConfigStore
 
 ## Knowledge Gaps
-- **76 isolated node(s):** `EditText`, `RadioButton`, `TextView`, `TankLevelView`, `Button` (+71 more)
+- **83 isolated node(s):** `EditText`, `RadioButton`, `TextView`, `TankLevelView`, `Button` (+78 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -105,15 +105,15 @@ Nodes (4): String, EspProvisioningRequest, DeviceConfig, DeviceConfigStore
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `DashboardActivity` connect `Community 1` to `Community 0`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **Why does `AquaMqttClient` connect `Community 0` to `Community 1`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **What connects `EditText`, `RadioButton`, `TextView` to the rest of the system?**
-  _76 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _83 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
 - **Should `Community 8` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
 - **Should `Community 12` be split into smaller, more focused modules?**
